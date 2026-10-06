@@ -177,20 +177,59 @@ with tab_reg:
 
 # --- PESTAÑA 3: FÁRMACOS Y DOSIFICACIÓN ---
 with tab_drugs:
-    st.subheader("Calculadora de Dosificación de Fármacos")
+    st.subheader("Calculadora de Dosificación de Fármacos Clínicos")
+    st.markdown("Seleccione un fármaco de la base de datos de uso común para calcular la dosis exacta según el peso vivo del paciente.")
     
     drug_database = {
-        "Oxitetraciclina L.A. (20%)": {"dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "concentracion_unidad": "mg/mL"},
-        "Meloxicam (2%)": {"dosis": 0.5, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL"},
-        "Ivermectina (1%)": {"dosis": 0.2, "unidad": "mg/kg", "concentracion": 10, "concentracion_unidad": "mg/mL"},
-        "Ceftiofur": {"dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL"}
+        "Oxitetraciclina L.A. (20%)": {
+            "dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Infecciones respiratorias, anaplasmosis y procesos infecciosos sistémicos."
+        },
+        "Meloxicam (2%)": {
+            "dosis": 0.5, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Antiinflamatorio, analgésico y antipirético en cuadros agudos."
+        },
+        "Ivermectina (1%)": {
+            "dosis": 0.2, "unidad": "mg/kg", "concentracion": 10, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Control de parásitos gastrointestinales y ectoparásitos."
+        },
+        "Ceftiofur (Clorhidrato / Cristalino)": {
+            "dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Enfermedad respiratoria bovina (BRD), pietín y metritis."
+        },
+        "Flunixin Meglumine": {
+            "dosis": 1.1, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Manejo del dolor visceral (cólicos en equinos), inflamación y fiebre."
+        },
+        "Florfenicol (30%)": {
+            "dosis": 40.0, "unidad": "mg/kg", "concentracion": 300, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Tratamiento de infecciones respiratorias severas y Mannheimia haemolytica."
+        },
+        "Enrofloxacina (10%)": {
+            "dosis": 5.0, "unidad": "mg/kg", "concentracion": 100, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Infecciones respiratorias y entéricas causadas por gramnegativos."
+        },
+        "Penicilina G Procainica": {
+            "dosis": 20000.0, "unidad": "UI/kg", "concentracion": 300000, "concentracion_unidad": "UI/mL", 
+            "indicacion": "Infecciones por bacterias grampositivas y clostridiosis."
+        },
+        "Albendazol (10%)": {
+            "dosis": 10.0, "unidad": "mg/kg", "concentracion": 100, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Antiparasitario interno de amplio espectro (nemátodos y tenias)."
+        },
+        "Xylazine (2%)": {
+            "dosis": 0.2, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", 
+            "indicacion": "Sedación, analgesia leve y miorrelajación (equinos y bovinos)."
+        }
     }
     
     col_d1, col_d2 = st.columns(2)
     with col_d1:
         selected_drug = st.selectbox("Seleccione el Fármaco", list(drug_database.keys()))
         drug_info = drug_database[selected_drug]
-        st.info(f"Dosis estándar recomendada: **{drug_info['dosis']} {drug_info['unidad']}**\n\nConcentración del producto: **{drug_info['concentracion']} {drug_info['concentracion_unidad']}**")
+        st.info(f"📋 **Indicación principal:** {drug_info['indicacion']}\n\n"
+                f"📌 **Dosis estándar:** {drug_info['dosis']} {drug_info['unidad']}\n\n"
+                f"🧪 **Concentración:** {drug_info['concentracion']} {drug_info['concentracion_unidad']}")
     
     with col_d2:
         animal_weight = st.number_input("Peso del animal para cálculo (kg)", min_value=1.0, max_value=1500.0, value=450.0, step=10.0)
@@ -198,7 +237,7 @@ with tab_drugs:
     if st.button("Calcular Dosis Total"):
         total_mg = animal_weight * drug_info['dosis']
         total_ml = total_mg / drug_info['concentracion']
-        st.success(f"### Dosis Total Requerida: **{round(total_ml, 2)} mL**  \n*(Equivalente a {total_mg} mg totales)*")
+        st.success(f"### Dosis Total Requerida: **{round(total_ml, 2)} mL**  \n*(Equivalente a {total_mg} {drug_info['unidad'].split('/')[0]} totales)*")
 
 # --- PESTAÑA 4: ESTIMACIÓN DE PESO (IA Y BIOMETRÍA) ---
 with tab_weight:
@@ -218,7 +257,6 @@ with tab_weight:
             
             if st.button("🤖 Procesar e Identificar Peso con IA"):
                 with st.spinner("Analizando fotogrametría corporal, perímetro y perfil con modelo de IA..."):
-                    # Simulación de respuesta analítica del modelo de visión artificial
                     st.success("¡Análisis de visión artificial completado!")
                     
                     res_col1, res_col2 = st.columns(2)
