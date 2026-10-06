@@ -1,4 +1,4 @@
-code_streamlit = """import streamlit as st
+import streamlit as st
 import numpy as np
 from PIL import Image
 import io
@@ -110,7 +110,6 @@ class SistemaClinicoCampo:
         arr = np.array(img)
         altura_px, ancho_px = arr.shape
         
-        # Factores alométricos aproximados por etapa fisiológica
         factores_etapa = {
             "Ternero": 0.35,
             "Recría": 0.85,
@@ -118,13 +117,9 @@ class SistemaClinicoCampo:
             "Vaca en Lactancia": 1.60
         }
         factor = factores_etapa.get(etapa_bovino, 1.0)
-        
-        # Cálculo morfométrico basado en proporción de área de proyección lateral
-        # (Uso de píxeles efectivos y contraste de silueta)
-        pixel_density = np.mean(arr < 200) # estimación de silueta oscura o general
+        pixel_density = np.mean(arr < 200)
         peso_estimado = (ancho_px * altura_px / 15000) * factor * (0.8 + 0.4 * pixel_density)
         
-        # Rangos biológicos de seguridad para bovinos
         if etapa_bovino == "Ternero":
             peso_estimado = max(35.0, min(140.0, peso_estimado))
         elif etapa_bovino == "Vaca en Lactancia":
@@ -144,7 +139,6 @@ sistema = SistemaClinicoCampo()
 st.title("🐄 Sistema Clínico Veterinario de Campo (CDSS Bovinos)")
 st.markdown("Herramienta de diagnóstico sindrómico, cálculo exacto de dosis por peso (evitando sub/sobredosificación) y gestión de inventario para condiciones restrictivas.")
 
-# Pestañas principales de la aplicación
 tab_registro, tab_peso_foto, tab_diagnostico, tab_farmacos, tab_historial = st.tabs([
     "📋 Registro de Pacientes", 
     "📸 Estimación Peso (Foto)", 
@@ -176,7 +170,7 @@ with tab_registro:
 
 with tab_peso_foto:
     st.header("📸 Estimación de Peso por Fotografía en Campo")
-    st.markdown("Tome o sube una fotografía lateral del bovino para calcular automáticamente su peso y evitar errores críticos de subdosificación o intoxicación por sobredosis.")
+    st.markdown("Tome o suba una fotografía lateral del bovino para calcular automáticamente su peso y evitar errores críticos de subdosificación o intoxicación por sobredosis.")
     
     col_foto1, col_foto2 = st.columns(2)
     with col_foto1:
@@ -229,7 +223,6 @@ with tab_diagnostico:
             farmacos_sugeridos = []
             pronostico = ""
             
-            # Lógica del motor sindrómico
             if "tos" in sintomas_lower or "descarga nasal" in sintomas_lower or diag_fr > 35:
                 diagnostico = "Enfermedad Respiratoria Bovina (ERB) / Neumonía"
                 if diag_temp > 39.5:
@@ -261,14 +254,12 @@ with tab_diagnostico:
                 tratamiento_desc = "Antipirético (Flunixin) + Complejo Vitamínico B."
                 pronostico = "Reservado."
                 
-            # Calcular dosis y costos automáticos
             calculo_dosis_resultados = []
             for f_key in farmacos_sugeridos:
                 res_dosis = sistema.calcular_dosis_y_costo(paciente_actual.peso_kg, f_key)
                 if res_dosis:
                     calculo_dosis_resultados.append(res_dosis)
                     
-            # Guardar en historial
             paciente_actual.agregar_evento(str(diag_fecha), diag_sintomas, diag_temp, diag_fc, diag_fr, diagnostico, tratamiento_desc, calculo_dosis_resultados, pronostico)
             
             st.success("¡Diagnóstico generado y guardado en el historial del paciente!")
@@ -282,68 +273,4 @@ with tab_diagnostico:
                 st.info(f"**Fármaco:** {item['farmaco']} (Vía: {item['via']})\n\n"
                         f"- Dosis Total: **{item['dosis_total_mg']} mg**\n"
                         f"- Volumen a Aplicar: **{item['volumen_ml']} mL**\n"
-                        f"- Costo Estimado: **${item['costo_estimado']}**")
-
-with tab_farmacos:
-    st.header("💊 Gestión de Fármacos e Inventario de Campo")
-    st.markdown("Consulte las concentraciones, vías de administración y costos unitarios configurados para optimizar el presupuesto del productor.")
-    
-    # Mostrar tabla de fármacos
-    farmacos_data = []
-    for k, v in st.session_state.inventario_farmacos.items():
-        farmacos_data.append({
-            "Clave": k,
-            "Nombre Comercial / Concentración": v["nombre"],
-            "Vía": v["via"],
-            "Costo por mL ($)": v["costo_por_ml"]
-        })
-    st.table(farmacos_data)
-    
-    st.subheader("➕ Agregar Nuevo Fármaco al Inventario")
-    with st.form("form_nuevo_farmaco"):
-        f_key = st.text_input("Clave corta (ej. enrofloxacina)")
-        f_nombre = st.text_input("Nombre y Concentración (ej. Enrofloxacina 100 mg/mL)")
-        f_conc = st.number_input("Concentración (mg/mL)", min_value=1.0, value=100.0)
-        f_dosis = st.number_input("Dosis recomendada (mg/kg)", min_value=0.1, value=5.0)
-        f_via = st.selectbox("Vía de administración", ["IM", "SC", "IV", "Oral"])
-        f_costo = st.number_input("Costo por mL ($)", min_value=0.01, value=2.50)
-        
-        submitted = st.form_submit_button("Guardar Fármaco")
-        if submitted and f_key and f_nombre:
-            st.session_state.inventario_farmacos[f_key.lower()] = {
-                "nombre": f_nombre,
-                "concentracion_mg_ml": f_conc,
-                "dosis_recomendada_mg_kg": f_dosis,
-                "costo_por_ml": f_costo,
-                "via": f_via
-            }
-            st.success(f"Fármaco '{f_nombre}' agregado exitosamente al inventario.")
-            st.rerun()
-
-with tab_historial:
-    st.header("📜 Historial Clínico de Pacientes")
-    if not st.session_state.pacientes:
-        st.info("No hay pacientes registrados para mostrar historial.")
-    else:
-        hist_arete = st.selectbox("Seleccione Arete para Ver Historial", list(st.session_state.pacientes.keys()), key="hist_sel")
-        p_sel = st.session_state.pacientes[hist_arete]
-        
-        st.write(f"**Propietario:** {p_sel.propietario} | **Especie/Tipo:** {p_sel.especie_tipo} | **Etapa:** {p_sel.etapa} | **Peso Actual:** {p_sel.peso_kg} kg")
-        
-        if not p_sel.historial:
-            st.info("Este paciente aún no registra eventos clínicos.")
-        else:
-            for i, ev in enumerate(p_sel.historial, 1):
-                with st.expander(f"Evento {i} - Fecha: {ev['fecha']} | Diagnóstico: {ev['diagnostico']}"):
-                    st.write(f"**Signos Clínicos:** {', '.join(ev['sintomas'])}")
-                    st.write(f"**Variables Vitales:** Temp: {ev['temperatura']}°C | FC: {ev['fc']} lpm | FR: {ev['fr']} rpm")
-                    st.write(f"**Tratamiento:** {ev['tratamiento']}")
-                    st.write(f"**Pronóstico:** {ev['pronostico']}")
-                    st.markdown("**Dosificación y Costos Aplicados:**")
-                    for d_item in ev['calculo_dosis']:
-                        st.text(f" - {d_item['farmaco']} ({d_item['via']}): {d_item['volumen_ml']} mL | Costo: ${d_item['costo_estimado']}")
-"""
-
-with open("app.py", "w", encoding="utf-8") as f:
-    f.write(code_streamlit)
-print("Archivo app.py actualizado con pestañas de Fármacos y Estimación de Peso por Foto exitosamente.")
+                        f"- Costo Estimado
