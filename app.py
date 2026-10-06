@@ -1,4 +1,4 @@
-import streamlit as st
+code_fixed = """import streamlit as st
 import numpy as np
 from PIL import Image
 import io
@@ -102,10 +102,10 @@ class SistemaClinicoCampo:
         }
 
     def estimar_peso_por_imagen(self, imagen_bytes, etapa_bovino):
-        """
+        \"\"\"
         Función de visión artificial en campo: procesa la foto lateral del bovino 
         para estimar su biomasa y evitar sub- o sobredosificación de fármacos.
-        """
+        \"\"\"
         img = Image.open(imagen_bytes).convert("L")
         arr = np.array(img)
         altura_px, ancho_px = arr.shape
@@ -270,7 +270,74 @@ with tab_diagnostico:
             
             st.markdown("### 🧮 Dosificación Exacta y Costos para el Rancho")
             for item in calculo_dosis_resultados:
-                st.info(f"**Fármaco:** {item['farmaco']} (Vía: {item['via']})\n\n"
-                        f"- Dosis Total: **{item['dosis_total_mg']} mg**\n"
-                        f"- Volumen a Aplicar: **{item['volumen_ml']} mL**\n"
-                        f"- Costo Estimado
+                st.info(f\"\"\"**Fármaco:** {item['farmaco']} (Vía: {item['via']})
+
+- Dosis Total: **{item['dosis_total_mg']} mg**
+- Volumen a Aplicar: **{item['volumen_ml']} mL**
+- Costo Estimado: **\${item['costo_estimado']}**\"\"\")
+
+with tab_farmacos:
+    st.header("💊 Gestión de Fármacos e Inventario de Campo")
+    st.markdown("Consulte las concentraciones, vías de administración y costos unitarios configurados para optimizar el presupuesto del productor.")
+    
+    farmacos_data = []
+    for k, v in st.session_state.inventario_farmacos.items():
+        farmacos_data.append({
+            "Clave": k,
+            "Nombre Comercial / Concentración": v["nombre"],
+            "Vía": v["via"],
+            "Costo por mL ($)": v["costo_por_ml"]
+        })
+    st.table(farmacos_data)
+    
+    st.subheader("➕ Agregar Nuevo Fármaco al Inventario")
+    with st.form("form_nuevo_farmaco"):
+        f_key = st.text_input("Clave corta (ej. enrofloxacina)")
+        f_nombre = st.text_input("Nombre y Concentración (ej. Enrofloxacina 100 mg/mL)")
+        f_conc = st.number_input("Concentración (mg/mL)", min_value=1.0, value=100.0)
+        f_dosis = st.number_input("Dosis recomendada (mg/kg)", min_value=0.1, value=5.0)
+        f_via = st.selectbox("Vía de administración", ["IM", "SC", "IV", "Oral"])
+        f_costo = st.number_input("Costo por mL ($)", min_value=0.01, value=2.50)
+        
+        submitted = st.form_submit_button("Guardar Fármaco")
+        if submitted and f_key and f_nombre:
+            st.session_state.inventario_farmacos[f_key.lower()] = {
+                "nombre": f_nombre,
+                "concentracion_mg_ml": f_conc,
+                "dosis_recomendada_mg_kg": f_dosis,
+                "costo_por_ml": f_costo,
+                "via": f_via
+            }
+            st.success(f"Fármaco '{f_nombre}' agregado exitosamente al inventario.")
+            st.rerun()
+
+with tab_historial:
+    st.header("📜 Historial Clínico de Pacientes")
+    if not st.session_state.pacientes:
+        st.info("No hay pacientes registrados para mostrar historial.")
+    else:
+        hist_arete = st.selectbox("Seleccione Arete para Ver Historial", list(st.session_state.pacientes.keys()), key="hist_sel")
+        p_sel = st.session_state.pacientes[hist_arete]
+        
+        st.write(f"**Propietario:** {p_sel.propietario} | **Especie/Tipo:** {p_sel.especie_tipo} | **Etapa:** {p_sel.etapa} | **Peso Actual:** {p_sel.peso_kg} kg")
+        
+        if not p_sel.historial:
+            st.info("Este paciente aún no registra eventos clínicos.")
+        else:
+            for i, ev in enumerate(p_sel.historial, 1):
+                with st.expander(f"Evento {i} - Fecha: {ev['fecha']} | Diagnóstico: {ev['diagnostico']}"):
+                    st.write(f"**Signos Clínicos:** {', '.join(ev['sintomas'])}")
+                    st.write(f"**Variables Vitales:** Temp: {ev['temperatura']}°C | FC: {ev['fc']} lpm | FR: {ev['fr']} rpm")
+                    st.write(f"**Tratamiento:** {ev['tratamiento']}")
+                    st.write(f"**Pronóstico:** {ev['pronostico']}")
+                    st.markdown("**Dosificación y Costos Aplicados:**")
+                    for d_item in ev['calculo_dosis']:
+                        st.text(f" - {d_item['farmacos'] if 'farmacos' in d_item else d_item['farmaco']} ({d_item['via']}): {d_item['volumen_ml']} mL | Costo: ${d_item['costo_estimado']}")
+"""
+
+with open("app.py", "w", encoding="utf-8") as f:
+    f.write(code_fixed)
+
+import py_compile
+py_compile.compile("app.py", doraise=True)
+print("Sintaxis validada correctamente sin errores.")
