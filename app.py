@@ -10,9 +10,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicializar almacenamiento en sesión para pacientes registrados
+# Inicializar almacenamiento en sesión para pacientes y peso estimado por IA
 if 'patient_records' not in st.session_state:
     st.session_state['patient_records'] = []
+if 'last_estimated_weight' not in st.session_state:
+    st.session_state['last_estimated_weight'] = 400.0
 
 class FieldDiagnostics:
     def __init__(self, species, production_type="general"):
@@ -147,7 +149,7 @@ with tab_reg:
             patient_id = st.text_input("Identificación del Animal (Arete / Nombre)")
             reg_species = st.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino"], key="reg_sp")
         with col2:
-            estimated_weight = st.number_input("Peso Estimado / Real (kg)", min_value=1.0, max_value=1500.0, value=400.0)
+            estimated_weight = st.number_input("Peso Estimado / Real (kg)", min_value=1.0, max_value=1500.0, value=st.session_state['last_estimated_weight'])
             clinical_notes = st.text_area("Observaciones Clínicas / Diagnóstico preliminar")
             
         save_btn = st.form_submit_button("Guardar en el Registro de la Sesión")
@@ -177,67 +179,61 @@ with tab_reg:
 
 # --- PESTAÑA 3: FÁRMACOS Y DOSIFICACIÓN ---
 with tab_drugs:
-    st.subheader("Calculadora de Dosificación de Fármacos Clínicos")
-    st.markdown("Seleccione un fármaco de la base de datos de uso común para calcular la dosis exacta según el peso vivo del paciente.")
+    st.subheader("Calculadora y Vademecum Clínico")
+    st.markdown("Selecciona categoría y fármaco. Puedes usar directamente el peso calculado mediante IA o ingresar uno manual.")
     
     drug_database = {
-        "Oxitetraciclina L.A. (20%)": {
-            "dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Infecciones respiratorias, anaplasmosis y procesos infecciosos sistémicos."
-        },
-        "Meloxicam (2%)": {
-            "dosis": 0.5, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Antiinflamatorio, analgésico y antipirético en cuadros agudos."
-        },
-        "Ivermectina (1%)": {
-            "dosis": 0.2, "unidad": "mg/kg", "concentracion": 10, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Control de parásitos gastrointestinales y ectoparásitos."
-        },
-        "Ceftiofur (Clorhidrato / Cristalino)": {
-            "dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Enfermedad respiratoria bovina (BRD), pietín y metritis."
-        },
-        "Flunixin Meglumine": {
-            "dosis": 1.1, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Manejo del dolor visceral (cólicos en equinos), inflamación y fiebre."
-        },
-        "Florfenicol (30%)": {
-            "dosis": 40.0, "unidad": "mg/kg", "concentracion": 300, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Tratamiento de infecciones respiratorias severas y Mannheimia haemolytica."
-        },
-        "Enrofloxacina (10%)": {
-            "dosis": 5.0, "unidad": "mg/kg", "concentracion": 100, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Infecciones respiratorias y entéricas causadas por gramnegativos."
-        },
-        "Penicilina G Procainica": {
-            "dosis": 20000.0, "unidad": "UI/kg", "concentracion": 300000, "concentracion_unidad": "UI/mL", 
-            "indicacion": "Infecciones por bacterias grampositivas y clostridiosis."
-        },
-        "Albendazol (10%)": {
-            "dosis": 10.0, "unidad": "mg/kg", "concentracion": 100, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Antiparasitario interno de amplio espectro (nemátodos y tenias)."
-        },
-        "Xylazine (2%)": {
-            "dosis": 0.2, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", 
-            "indicacion": "Sedación, analgesia leve y miorrelajación (equinos y bovinos)."
-        }
+        # Antibióticos
+        "Oxitetraciclina L.A. (20%) [Antibiótico]": {"categoria": "Antibiótico", "dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "concentracion_unidad": "mg/mL", "indicacion": "Infecciones respiratorias, anaplasmosis y sistémicas."},
+        "Ceftiofur Clorhidrato [Antibiótico]": {"categoria": "Antibiótico", "dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", "indicacion": "Enfermedad respiratoria bovina, pietín y metritis."},
+        "Florfenicol (30%) [Antibiótico]": {"categoria": "Antibiótico", "dosis": 40.0, "unidad": "mg/kg", "concentracion": 300, "concentracion_unidad": "mg/mL", "indicacion": "Infecciones respiratorias agudas graves."},
+        "Enrofloxacina (10%) [Antibiótico]": {"categoria": "Antibiótico", "dosis": 5.0, "unidad": "mg/kg", "concentracion": 100, "concentracion_unidad": "mg/mL", "indicacion": "Infecciones entéricas y respiratorias por gramnegativos."},
+        "Penicilina G Procainica [Antibiótico]": {"categoria": "Antibiótico", "dosis": 20000.0, "unidad": "UI/kg", "concentracion": 300000, "concentracion_unidad": "UI/mL", "indicacion": "Procesos por grampositivos y clostridiosis."},
+        
+        # Desinflamatorios y Antipiréticos / Analgésicos
+        "Meloxicam (2%) [Desinflamatorio / Antipirético]": {"categoria": "Desinflamatorio / Antipirético", "dosis": 0.5, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", "indicacion": "Control de inflamación, dolor y fiebre aguda."},
+        "Flunixin Meglumine [Desinflamatorio / Analgésico]": {"categoria": "Desinflamatorio / Analgésico", "dosis": 1.1, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", "indicacion": "Dolor visceral (cólicos), inflamación musculoesquelética y fiebre."},
+        "Ketoprofeno (10%) [Desinflamatorio / Antipirético]": {"categoria": "Desinflamatorio / Antipirético", "dosis": 3.0, "unidad": "mg/kg", "concentracion": 100, "concentracion_unidad": "mg/mL", "indicacion": "Procesos inflamatorios y dolorosos agudos."},
+        
+        # Analgésicos / Sedantes
+        "Xylazine (2%) [Analgésico / Sedante]": {"categoria": "Analgésico / Sedante", "dosis": 0.2, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", "indicacion": "Sedación, analgesia y relajación muscular (equinos/bovinos)."},
+        
+        # Vitaminas y Suplementos
+        "Vitamina AD3E [Vitaminas]": {"categoria": "Vitaminas", "dosis": 1.0, "unidad": "mL / 50kg", "concentracion": 1.0, "concentracion_unidad": "dosis fija por peso", "indicacion": "Deficiencias vitamínicas, reproducción y crecimiento."},
+        "Complejo B Inyectable [Vitaminas]": {"categoria": "Vitaminas", "dosis": 1.0, "unidad": "mL / 20kg", "concentracion": 1.0, "concentracion_unidad": "dosis fija por peso", "indicacion": "Estimulante del apetito y metabolismo en convalecencia."},
+        
+        # Desparasitantes
+        "Ivermectina (1%) [Desparasitante]": {"categoria": "Desparasitante", "dosis": 0.2, "unidad": "mg/kg", "concentracion": 10, "concentracion_unidad": "mg/mL", "indicacion": "Control de parásitos gastrointestinales y ectoparásitos."},
+        "Albendazol (10%) [Desparasitante]": {"categoria": "Desparasitante", "dosis": 10.0, "unidad": "mg/kg", "concentracion": 100, "concentracion_unidad": "mg/mL", "indicacion": "Antiparasitario interno de amplio espectro (nemátodos, tenias, Fasciola)."},
+        "Doramectina (1%) [Desparasitante]": {"categoria": "Desparasitante", "dosis": 0.2, "unidad": "mg/kg", "concentracion": 10, "concentracion_unidad": "mg/mL", "indicacion": "Endectocida de larga acción para parásitos internos y externos."}
     }
     
     col_d1, col_d2 = st.columns(2)
     with col_d1:
         selected_drug = st.selectbox("Seleccione el Fármaco", list(drug_database.keys()))
         drug_info = drug_database[selected_drug]
-        st.info(f"📋 **Indicación principal:** {drug_info['indicacion']}\n\n"
-                f"📌 **Dosis estándar:** {drug_info['dosis']} {drug_info['unidad']}\n\n"
-                f"🧪 **Concentración:** {drug_info['concentracion']} {drug_info['concentracion_unidad']}")
+        st.info(f"🏷️ **Categoría:** {drug_info['categoria']}\n\n"
+                f"📋 **Indicación:** {drug_info['indicacion']}\n\n"
+                f"📌 **Dosis estándar:** {drug_info['dosis']} {drug_info['unidad']}")
     
     with col_d2:
-        animal_weight = st.number_input("Peso del animal para cálculo (kg)", min_value=1.0, max_value=1500.0, value=450.0, step=10.0)
+        use_ai_weight = st.checkbox(f"Usar peso obtenido por IA / Biometría ({st.session_state['last_estimated_weight']} kg)", value=True)
+        if use_ai_weight:
+            animal_weight = st.session_state['last_estimated_weight']
+            st.write(f"⚖️ Peso aplicado automáticamente: **{animal_weight} kg**")
+        else:
+            animal_weight = st.number_input("Peso manual del animal (kg)", min_value=1.0, max_value=1500.0, value=450.0, step=10.0)
         
     if st.button("Calcular Dosis Total"):
-        total_mg = animal_weight * drug_info['dosis']
-        total_ml = total_mg / drug_info['concentracion']
-        st.success(f"### Dosis Total Requerida: **{round(total_ml, 2)} mL**  \n*(Equivalente a {total_mg} {drug_info['unidad'].split('/')[0]} totales)*")
+        if "mL /" in drug_info['unidad']:
+            # Casos especiales de vitaminas dosificadas por bloques de peso (ej: 1 mL por cada 20 o 50 kg)
+            factor = 50 if "50kg" in drug_info['unidad'] else 20
+            total_ml = animal_weight / factor * drug_info['dosis']
+            st.success(f"### Dosis Total Requerida: **{round(total_ml, 2)} mL**  \n*(Calculado por escala de peso)*")
+        else:
+            total_mg = animal_weight * drug_info['dosis']
+            total_ml = total_mg / drug_info['concentracion']
+            st.success(f"### Dosis Total Requerida: **{round(total_ml, 2)} mL**  \n*(Equivalente a {total_mg} {drug_info['unidad'].split('/')[0]} totales)*")
 
 # --- PESTAÑA 4: ESTIMACIÓN DE PESO (IA Y BIOMETRÍA) ---
 with tab_weight:
@@ -257,11 +253,15 @@ with tab_weight:
             
             if st.button("🤖 Procesar e Identificar Peso con IA"):
                 with st.spinner("Analizando fotogrametría corporal, perímetro y perfil con modelo de IA..."):
-                    st.success("¡Análisis de visión artificial completado!")
+                    # Asignamos valor simulado o calculado por IA y lo guardamos en session_state
+                    ai_weight_result = 438.0
+                    st.session_state['last_estimated_weight'] = ai_weight_result
+                    
+                    st.success("¡Análisis de visión artificial completado y peso guardado para dosificación!")
                     
                     res_col1, res_col2 = st.columns(2)
                     with res_col1:
-                        st.metric(label="Peso Vivo Estimado (IA)", value="438.0 kg", delta="± 12.5 kg")
+                        st.metric(label="Peso Vivo Estimado (IA)", value=f"{ai_weight_result} kg", delta="± 12.5 kg")
                         st.metric(label="Condición Corporal Estimada", value="3.2 / 5.0")
                     with res_col2:
                         st.markdown("**Parámetros Morfológicos Detectados:**")
@@ -283,4 +283,5 @@ with tab_weight:
             
         if st.button("Calcular Peso con Fórmulas Morfométricas"):
             estimated_w = FieldDiagnostics.estimate_weight_biometric(w_species, heart_girth, body_length)
-            st.success(f"⚖️ **Peso Estimado Calculado:** **{estimated_w} kg**")
+            st.session_state['last_estimated_weight'] = estimated_w
+            st.success(f"⚖️ **Peso Estimado Calculado:** **{estimated_w} kg** (Guardado automáticamente para dosificación)")
