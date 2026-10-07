@@ -78,11 +78,6 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
-    /* Sidebar refinada */
-    css-1d391kg {
-        background-color: #0f172a;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -158,29 +153,6 @@ class FieldDiagnostics:
         else:
             weight = (heart_girth ** 2 * body_length) / 10000
         return round(weight, 2)
-
-    @staticmethod
-    def analyze_rumen_fft(audio_signal, sample_rate):
-        if len(audio_signal) == 0:
-            return "Señal vacía", 0, 0
-        
-        fft_vals = np.fft.rfft(audio_signal)
-        fft_freqs = np.fft.rfftfreq(len(audio_signal), 1 / sample_rate)
-        power_spectrum = np.abs(fft_vals) ** 2
-        
-        peak_freq = fft_freqs[np.argmax(power_spectrum)]
-        mean_power = np.mean(power_spectrum)
-        
-        if mean_power < 100:
-            diagnosis = "🔴 **Atonía Ruminal Detectada:** Ausencia de actividad contráctil y perfil acústico plano."
-        elif 20 <= peak_freq <= 180:
-            diagnosis = "🟢 **Motilidad Ruminal Normal:** Patrón acústico rítmico con predominio de bajas frecuencias."
-        elif peak_freq > 250:
-            diagnosis = "🟡 **Alerta de Acumulación Gaseosa / SARA:** Presencia de altas frecuencias armónicas por turbulencia."
-        else:
-            diagnosis = "🟠 **Actividad Ruminal Irregular:** Se sugieren pruebas complementarias."
-            
-        return diagnosis, round(peak_freq, 2), round(mean_power, 2)
 
 
 # ==========================================
@@ -326,86 +298,3 @@ with tab_reg:
     if st.session_state['patient_records']:
         df_all = pd.DataFrame(st.session_state['patient_records'])
         unique_aretes = df_all["Arete/ID"].unique().tolist()
-        
-        selected_search_arete = st.selectbox("Seleccione o busque el Arete del animal para ver su historial completo", unique_aretes)
-        
-        df_filtered = df_all[df_all["Arete/ID"] == selected_search_arete]
-        
-        st.markdown(f"### Historial Médico del Animal: **{selected_search_arete}**")
-        st.dataframe(df_filtered, use_container_width=True)
-        
-        if st.button("🗑️ Limpiar Todos los Registros"):
-            st.session_state['patient_records'] = []
-            st.rerun()
-    else:
-        st.info("Aún no hay registros clínicos guardados en esta sesión.")
-
-
-# --- PESTAÑA 3: FÁRMACOS Y DOSIFICACIÓN ---
-with tab_drugs:
-    st.subheader("Calculadora y Vademecum Clínico Clasificado")
-    st.markdown("Dosificación optimizada con base en el peso registrado y el perfil del paciente.")
-    
-    drug_database = {
-        "Oxitetraciclina L.A. (20%) [Antibiótico]": {"dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "concentracion_unidad": "mg/mL", "indicacion": "Infecciones respiratorias y sistémicas."},
-        "Ceftiofur Clorhidrato [Antibiótico]": {"dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", "indicacion": "Enfermedad respiratoria bovina y pietín."},
-        "Florfenicol (30%) [Antibiótico]": {"dosis": 40.0, "unidad": "mg/kg", "concentracion": 300, "concentracion_unidad": "mg/mL", "indicacion": "Infecciones respiratorias agudas graves."},
-        "Meloxicam (2%) [Desinflamatorio]": {"dosis": 0.5, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", "indicacion": "Control de inflamación, dolor y fiebre."},
-        "Flunixin Meglumine [Analgésico]": {"dosis": 1.1, "unidad": "mg/kg", "concentracion": 50, "concentracion_unidad": "mg/mL", "indicacion": "Dolor visceral y cólicos."},
-        "Xylazine (2%) [Sedante]": {"dosis": 0.2, "unidad": "mg/kg", "concentracion": 20, "concentracion_unidad": "mg/mL", "indicacion": "Sedación y relajación muscular."},
-        "Ivermectina (1%) [Desparasitante]": {"dosis": 0.2, "unidad": "mg/kg", "concentracion": 10, "concentracion_unidad": "mg/mL", "indicacion": "Control de parásitos internos y externos."}
-    }
-    
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        selected_drug = st.selectbox("Seleccione el Fármaco", list(drug_database.keys()))
-        drug_info = drug_database[selected_drug]
-        st.info(f"📋 **Indicación:** {drug_info['indicacion']}\n\n📌 **Dosis estándar:** {drug_info['dosis']} {drug_info['unidad']}")
-    
-    with col_d2:
-        use_ai_weight = st.checkbox(f"Usar peso actual ({st.session_state['last_estimated_weight']} kg)", value=True)
-        animal_weight = st.session_state['last_estimated_weight'] if use_ai_weight else st.number_input("Peso manual (kg)", min_value=1.0, max_value=1500.0, value=450.0)
-        
-    if st.button("Calcular Dosis Total"):
-        total_mg = animal_weight * drug_info['dosis']
-        total_ml = total_mg / drug_info['concentracion']
-        st.success(f"### Dosis Total Requerida: **{round(total_ml, 2)} mL**  \n*(Para un peso de {animal_weight} kg)*")
-
-
-# --- PESTAÑA 4: ESTIMACIÓN DE PESO (IA Y BIOMETRÍA) ---
-with tab_weight:
-    st.subheader("Herramientas de Estimación de Peso")
-    weight_mode = st.radio("Método de estimación:", ["📸 Inteligencia Artificial por Fotografía", "📐 Ecuaciones Morfométricas (Cinta)"])
-    
-    if weight_mode == "📸 Inteligencia Artificial por Fotografía":
-        uploaded_image = st.file_uploader("Sube la fotografía lateral del animal", type=["jpg", "jpeg", "png"])
-        if uploaded_image:
-            st.image(Image.open(uploaded_image), caption=f"Paciente ID: {current_patient_id}", use_container_width=True)
-            if st.button("🤖 Procesar Peso con IA"):
-                ai_weight_result = 438.0
-                st.session_state['last_estimated_weight'] = ai_weight_result
-                st.success(f"¡Peso estimado por visión artificial: {ai_weight_result} kg (Guardado para dosificación y registro)!")
-    else:
-        col_w1, col_w2 = st.columns(2)
-        with col_w1:
-            heart_girth = st.number_input("Perímetro Torácico (cm)", min_value=30.0, max_value=300.0, value=180.0)
-        with col_w2:
-            body_length = st.number_input("Longitud Corporal (cm)", min_value=30.0, max_value=300.0, value=150.0)
-            
-        if st.button("Calcular con Morfometría"):
-            estimated_w = FieldDiagnostics.estimate_weight_biometric(sb_species.lower(), heart_girth, body_length)
-            st.session_state['last_estimated_weight'] = estimated_w
-            st.success(f"⚖️ **Peso Calculado:** **{estimated_w} kg**")
-
-
-# --- PESTAÑA 5: FONOFONÍA RUMINAL (IA ACÚSTICA) ---
-with tab_audio:
-    st.subheader("🔊 Diagnóstico Acústico Ruminal por IA")
-    st.markdown(f"Analizando perfil acústico para el animal con ID: **{current_patient_id}**")
-    audio_file = st.file_uploader("Sube el archivo de audio ruminal (WAV)", type=["wav", "mp3", "m4a"])
-    
-    if audio_file:
-        st.audio(audio_file)
-        if st.button("🔬 Analizar Espectro Acústico (FFT)"):
-            st.success("¡Análisis acústico simulado por IA completado!")
-            st.markdown("### Diagnóstico Fon
