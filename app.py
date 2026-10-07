@@ -43,15 +43,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Inicializar sesión y variables de persistencia
+# ==========================================
+# INICIALIZACIÓN DE ESTADO DE SESIÓN (PERSISTENCIA)
+# ==========================================
 if 'patient_records' not in st.session_state:
     st.session_state['patient_records'] = []
 if 'last_estimated_weight' not in st.session_state:
     st.session_state['last_estimated_weight'] = 450.0
 if 'last_drug_result' not in st.session_state:
     st.session_state['last_drug_result'] = None
-if 'audio_analyzed' not in st.session_state:
-    st.session_state['audio_analyzed'] = False
+if 'diagnostic_report' not in st.session_state:
+    st.session_state['diagnostic_report'] = None
+if 'audio_result' not in st.session_state:
+    st.session_state['audio_result'] = None
 
 # ==========================================
 # MOTOR DE DECISIÓN CLÍNICA Y DIAGNÓSTICO (CDSS)
@@ -146,60 +150,4 @@ with st.sidebar.expander("🏷️ 1. Reseña y Señalamiento", expanded=True):
         sb_prod_type = "general"
         
     sb_age_group = st.selectbox("Grupo Etario", ["Neonato / Cría", "Juvenil / Levante", "Adulto en Producción / Mantenimiento", "Geriátrico / Reproductor"])
-    sb_sex = st.selectbox("Sexo", ["Hembra", "Macho", "Macho Castrado"])
-
-with st.sidebar.expander("📋 2. Anamnesis y Evolución"):
-    sb_evolution = st.selectbox("Tiempo de Evolución", ["Hiperagudo (< 12 hrs)", "Agudo (12 - 48 hrs)", "Subagudo (3 - 7 días)", "Crónico (> 7 días)"])
-    sb_morbidity = st.selectbox("Incidencia en el Lote / Colectivo", ["Caso esporádico (1 animal)", "Brote focal (2 a 5 animales)", "Brote masivo (> 10%)"])
-    sb_system = st.selectbox("Sistema Principal Afectado", ["Digestivo / Metabólico", "Respiratorio", "Locomotor / Podal", "Reproductivo / Urogenital", "Nervioso / Infeccioso sistémico"])
-
-with st.sidebar.expander("🌾 3. Nutrición y Ambiente"):
-    sb_system_prod = st.selectbox("Sistema de Alojamiento", ["Estabulación total / Confinamiento", "Pastoreo intensivo rotacional", "Sistema mixto / Doméstico"])
-    sb_diet_change = st.selectbox("Factor de Riesgo / Dieta", ["Sin cambios recientes", "Cambio abrupto de dieta (< 48 hrs)", "Acceso a tóxicos / Cuerpos extraños", "Estrés por transporte / climas"])
-
-st.sidebar.markdown("---")
-current_patient_id = st.sidebar.text_input("🆔 Arete / ID / Nombre del Paciente", value="ANIMAL-001")
-
-st.sidebar.markdown(
-    "<div style='text-align: center; color: #64748b; font-size: 0.85rem; padding: 10px;'>"
-    "Diseñado y desarrollado por<br><b>Dr. Vet. Alejandro Castañeda Correa</b>"
-    "</div>", 
-    unsafe_allow_html=True
-)
-
-# ==========================================
-# ENCABEZADO VANGUARDISTA CON LOGOTIPO
-# ==========================================
-st.markdown("""
-<div class="hero-container">
-    <div class="hero-logo">🧬</div>
-    <div>
-        <h1 class="hero-title">Clinic-IA</h1>
-        <p class="hero-subtitle">Plataforma experta de diagnóstico clínico veterinario con motores de inferencia probabilística.</p>
-        <p class="hero-author">Autor: Dr. Vet. Alejandro Castañeda Correa</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ==========================================
-# PESTAÑAS PRINCIPALES
-# ==========================================
-tab_diag, tab_reg, tab_drugs, tab_weight, tab_audio = st.tabs([
-    "🩺 Diagnóstico IA Avanzado", 
-    "📁 Historial por Rancho", 
-    "💊 Vademecum Multiespecie", 
-    "⚖️ Estimación de Peso",
-    "🔊 Fonofonía (IA)"
-])
-
-# --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO AVANZADO ---
-with tab_diag:
-    st.subheader(f"Evaluación Clínica de Precisión: [{current_patient_id}]")
-    st.info(f"Reseña activa: **{sb_species} | Raza: {sb_breed} | Etapa: {sb_age_group}**")
-    
-    with st.form("advanced_diagnostic_form"):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.5, step=0.1)
-        with c2:
-            hr = st
+    sb_sex
