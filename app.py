@@ -6,8 +6,8 @@ from PIL import Image
 
 # Configuración de la página
 st.set_page_config(
-    page_title="NutriON - Diagnóstico y Campo Avanzado",
-    page_icon="🐄",
+    page_title="Clinic-IA - Diagnóstico y Campo Avanzado",
+    page_icon="🩺",
     layout="wide"
 )
 
@@ -138,11 +138,21 @@ with st.sidebar.expander("💉 4. Manejo Sanitario Reciente"):
 st.sidebar.markdown("---")
 current_patient_id = st.sidebar.text_input("🆔 Arete / ID Activo para Consulta", value="ARETE-001")
 
+st.sidebar.markdown("---")
+st.sidebar.markdown("👨‍⚕️ **Desarrollado por:**  \nDr. Vet. Alejandro Castañeda Correa")
+
 
 # ==========================================
-# INTERFAZ PRINCIPAL
+# INTERFAZ PRINCIPAL (ENCABEZADO CON LOGOTIPO Y SLOGAN)
 # ==========================================
-st.title("🐄 NutriON - Inteligencia Clínica Veterinaria en Campo")
+col_logo, col_title = st.columns([1, 8])
+with col_logo:
+    st.markdown("# 🩺")
+with col_title:
+    st.title("Clinic-IA")
+    st.markdown("*\"Precisión diagnóstica e inteligencia artificial avanzada para la clínica veterinaria de campo.\"*")
+
+st.divider()
 
 tab_diag, tab_reg, tab_drugs, tab_weight, tab_audio = st.tabs([
     "🩺 Diagnóstico Clínico", 
@@ -187,7 +197,6 @@ with tab_diag:
         st.markdown("### Estado de Hidratación")
         st.write(dehydration_result)
         
-        # Sugerencia clínica basada en anamnesis del panel lateral
         st.markdown("### 🔍 Factores de Riesgo Integrados (Anamnesis)")
         st.write(f"- **Evolución del cuadro:** {sb_evolution} ({sb_morbidity})")
         st.write(f"- **Sistema afectado:** {sb_system}")
@@ -198,7 +207,6 @@ with tab_diag:
 with tab_reg:
     st.subheader("📁 Historial Clínico Longitudinal por Número de Arete / ID")
     
-    # Sección 1: Guardar nuevo evento clínico
     with st.form("patient_form"):
         col1, col2 = st.columns(2)
         with col1:
@@ -235,7 +243,6 @@ with tab_reg:
         
         selected_search_arete = st.selectbox("Seleccione o busque el Arete del animal para ver su historial completo", unique_aretes)
         
-        # Filtrar registros por arete seleccionado
         df_filtered = df_all[df_all["Arete/ID"] == selected_search_arete]
         
         st.markdown(f"### Historial Médico del Animal: **{selected_search_arete}**")
