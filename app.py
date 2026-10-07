@@ -56,6 +56,8 @@ if 'diagnostic_report' not in st.session_state:
     st.session_state['diagnostic_report'] = None
 if 'audio_result' not in st.session_state:
     st.session_state['audio_result'] = None
+if 'appointments' not in st.session_state:
+    st.session_state['appointments'] = []
 
 # ==========================================
 # MOTOR DE DECISIÓN CLÍNICA Y DIAGNÓSTICO (CDSS)
@@ -181,48 +183,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# PESTAÑAS PRINCIPALES
+# PESTAÑAS PRINCIPALES (6 SECCIONES)
 # ==========================================
-tab_diag, tab_reg, tab_drugs, tab_weight, tab_audio = st.tabs([
-    "🩺 Diagnóstico IA Avanzado", 
-    "📁 Historial por Rancho", 
-    "💊 Vademecum Multiespecie", 
-    "⚖️ Estimación de Peso",
-    "🔊 Fonofonía (IA)"
-])
-
-# --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO AVANZADO ---
-with tab_diag:
-    st.subheader(f"Evaluación Clínica de Precisión: [{current_patient_id}]")
-    st.info(f"Reseña activa: **{sb_species} | Raza: {sb_breed} | Sexo: {sb_sex} | Etapa: {sb_age_group}**")
-    
-    temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.5, step=0.1)
-    hr = st.number_input("Frecuencia Cardíaca (lpm)", min_value=10, max_value=220, value=70, step=1)
-    rr = st.number_input("Frecuencia Respiratoria (rpm)", min_value=5, max_value=120, value=20, step=1)
-
-    st.markdown("---")
-    st.markdown("#### Hallazgos Clínicos Complementarios")
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        sign_1 = st.checkbox("Hipomotilidad / Atonía orgánica")
-        sign_2 = st.checkbox("Deshidratación moderada/severa (>6%)")
-    with col_s2:
-        sign_3 = st.checkbox("Signos de dolor abdominal / cólico / incomodidad")
-        sign_4 = st.checkbox("Secreción óculo-nasal o patrón respiratorio disfónico")
-
-    if st.button("Ejecutar Algoritmo de Diagnóstico de Alta Precisión", type="primary"):
-        engine = AdvancedClinicalEngine(sb_species, sb_prod_type.lower())
-        vitals_eval = engine.evaluate_vitals(temp, hr, rr)
-        signs_list = []
-        if sb_diet_change != "Sin cambios recientes": signs_list.append("Cambio de dieta reciente")
-        if sign_1: signs_list.append("Hipomotilidad ruminal")
-        differentials = engine.compute_differential_diagnosis(sb_system, signs_list, temp, hr, rr)
-        
-        st.session_state['diagnostic_report'] = {
-            "vitals": vitals_eval,
-            "differentials": differentials,
-            "patient": current_patient_id
-        }
-
-    if st.session_state['diagnostic_report']:
-        report = st.session
+tab_diag, tab_reg, tab
