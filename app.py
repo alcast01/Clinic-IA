@@ -134,7 +134,7 @@ class AdvancedClinicalEngine:
 
 
 # ==========================================
-# PANEL LATERAL DE CAMPO Y RESEÑA (CORREGIDO)
+# PANEL LATERAL DE CAMPO Y RESEÑA
 # ==========================================
 st.sidebar.markdown("### 🩺 Panel Clínico de Precisión")
 st.sidebar.markdown("Parámetros inteligentes para anamnesis integral.")
@@ -148,4 +148,178 @@ else:
     sb_breed = st.sidebar.text_input("Raza / Biotipo", value="Estándar / Mestizo")
     sb_prod_type = "general"
     
-sb_age_group = st.sidebar.selectbox("Grupo Et
+sb_age_group = st.sidebar.selectbox("Grupo Etario", ["Neonato / Cría", "Juvenil / Levante", "Adulto en Producción / Mantenimiento", "Geriátrico / Reproductor"])
+sb_sex = st.sidebar.selectbox("Sexo", ["Hembra", "Macho", "Macho Castrado"])
+
+sb_evolution = st.sidebar.selectbox("Tiempo de Evolución", ["Hiperagudo (< 12 hrs)", "Agudo (12 - 48 hrs)", "Subagudo (3 - 7 días)", "Crónico (> 7 días)"])
+sb_morbidity = st.sidebar.selectbox("Incidencia en el Lote / Colectivo", ["Caso esporádico (1 animal)", "Brote focal (2 a 5 animales)", "Brote masivo (> 10%)"])
+sb_system = st.sidebar.selectbox("Sistema Principal Afectado", ["Digestivo / Metabólico", "Respiratorio", "Locomotor / Podal", "Reproductivo / Urogenital", "Nervioso / Infeccioso sistémico"])
+
+sb_system_prod = st.sidebar.selectbox("Sistema de Alojamiento", ["Estabulación total / Confinamiento", "Pastoreo intensivo rotacional", "Sistema mixto / Doméstico"])
+sb_diet_change = st.sidebar.selectbox("Factor de Riesgo / Dieta", ["Sin cambios recientes", "Cambio abrupto de dieta (< 48 hrs)", "Acceso a tóxicos / Cuerpos extraños", "Estrés por transporte / climas"])
+
+current_patient_id = st.sidebar.text_input("🆔 Arete / ID / Nombre del Paciente", value="ANIMAL-001")
+
+st.sidebar.markdown(
+    "<div style='text-align: center; color: #64748b; font-size: 0.85rem; padding: 10px;'>"
+    "Diseñado y desarrollado por<br><b>Dr. Vet. Alejandro Castañeda Correa</b>"
+    "</div>", 
+    unsafe_allow_html=True
+)
+
+# ==========================================
+# ENCABEZADO VANGUARDISTA CON LOGOTIPO
+# ==========================================
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-logo">🧬</div>
+    <div>
+        <h1 class="hero-title">Clinic-IA</h1>
+        <p class="hero-subtitle">Plataforma experta de diagnóstico clínico veterinario con motores de inferencia probabilística.</p>
+        <p class="hero-author">Autor: Dr. Vet. Alejandro Castañeda Correa</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# PESTAÑAS PRINCIPALES
+# ==========================================
+tab_diag, tab_reg, tab_drugs, tab_weight, tab_audio = st.tabs([
+    "🩺 Diagnóstico IA Avanzado", 
+    "📁 Historial por Rancho", 
+    "💊 Vademecum Multiespecie", 
+    "⚖️ Estimación de Peso",
+    "🔊 Fonofonía (IA)"
+])
+
+# --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO AVANZADO ---
+with tab_diag:
+    st.subheader(f"Evaluación Clínica de Precisión: [{current_patient_id}]")
+    st.info(f"Reseña activa: **{sb_species} | Raza: {sb_breed} | Sexo: {sb_sex} | Etapa: {sb_age_group}**")
+    
+    temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.5, step=0.1)
+    hr = st.number_input("Frecuencia Cardíaca (lpm)", min_value=10, max_value=220, value=70, step=1)
+    rr = st.number_input("Frecuencia Respiratoria (rpm)", min_value=5, max_value=120, value=20, step=1)
+
+    st.markdown("---")
+    st.markdown("#### Hallazgos Clínicos Complementarios")
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        sign_1 = st.checkbox("Hipomotilidad / Atonía orgánica")
+        sign_2 = st.checkbox("Deshidratación moderada/severa (>6%)")
+    with col_s2:
+        sign_3 = st.checkbox("Signos de dolor abdominal / cólico / incomodidad")
+        sign_4 = st.checkbox("Secreción óculo-nasal o patrón respiratorio disfónico")
+
+    if st.button("Ejecutar Algoritmo de Diagnóstico de Alta Precisión", type="primary"):
+        engine = AdvancedClinicalEngine(sb_species, sb_prod_type.lower())
+        vitals_eval = engine.evaluate_vitals(temp, hr, rr)
+        signs_list = []
+        if sb_diet_change != "Sin cambios recientes": signs_list.append("Cambio de dieta reciente")
+        if sign_1: signs_list.append("Hipomotilidad ruminal")
+        differentials = engine.compute_differential_diagnosis(sb_system, signs_list, temp, hr, rr)
+        
+        st.session_state['diagnostic_report'] = {
+            "vitals": vitals_eval,
+            "differentials": differentials,
+            "patient": current_patient_id
+        }
+
+    if st.session_state['diagnostic_report']:
+        report = st.session_state['diagnostic_report']
+        st.divider()
+        st.subheader(f"📊 Reporte Diagnóstico y Matriz de Confianza [{report['patient']}]")
+        
+        st.markdown("### 1. Validación Fisiológica")
+        for alert in report['vitals']:
+            st.write(alert)
+            
+        st.markdown("### 2. Diagnósticos Diferenciales (Ranking Bayesiano)")
+        for idx, item in enumerate(report['differentials'], 1):
+            confidence = item['prob']
+            st.markdown(f"**{idx}. {item['dx']}** — Índice de Coincidencia: **{confidence}%**")
+            st.progress(confidence / 100.0)
+            
+        st.markdown("### 3. Plan Terapéutico y Recomendaciones de Campo")
+        st.success("✔ Se recomienda toma de muestras complementarias y seguimiento clínico en el expediente del rancho.")
+
+
+# --- PESTAÑA 2: HISTORIAL CLÍNICO POR RANCHO Y MUNICIPIO ---
+with tab_reg:
+    st.subheader("📁 Archivo de Pacientes por Rancho Ganadero y Municipio")
+    st.markdown("Organice y audite el historial longitudinal agrupado por unidad de producción y localidad.")
+    
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        input_rancho = st.text_input("🏡 Nombre del Rancho / Predio / Unidad", value="Rancho El Porvenir")
+        input_municipio = st.text_input("📍 Municipio / Localidad", value="Tlaltenango, Zacatecas")
+    with col_r2:
+        input_arete = st.text_input("🆔 ID / Arete / Nombre del Animal", value=current_patient_id)
+        reg_species = st.selectbox("Especie en Registro", ["Bovino", "Equino", "Porcino", "Ovino", "Canino", "Felino"], index=0 if sb_species=="Bovino" else 0)
+        
+    col_r3, col_r4 = st.columns(2)
+    with col_r3:
+        estimated_weight = st.number_input("Peso Actual (kg)", min_value=0.5, max_value=1500.0, value=float(st.session_state['last_estimated_weight']), step=0.5)
+    with col_r4:
+        clinical_notes = st.text_area("Hallazgos de Exploración y Plan Terapéutico")
+        
+    if st.button("Guardar Evento en el Archivo del Rancho", type="primary"):
+        if input_arete and input_rancho:
+            record = {
+                "Rancho / Predio": input_rancho.strip().title(),
+                "Municipio": input_municipio.strip().title(),
+                "ID Paciente": input_arete.strip().upper(),
+                "Fecha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "Especie": reg_species,
+                "Raza": sb_breed,
+                "Sexo": sb_sex,
+                "Sistema Afectado": sb_system,
+                "Peso (kg)": estimated_weight,
+                "Notas Clínicas": clinical_notes
+            }
+            st.session_state['patient_records'].append(record)
+            st.success(f"¡Expediente guardado exitosamente para el predio **{input_rancho.upper()}** ({input_municipio})!")
+        else:
+            st.warning("Por favor completa el nombre del rancho y el ID del paciente.")
+
+    st.markdown("---")
+    st.subheader("🔍 Filtro y Consulta por Rancho / Municipio")
+    
+    if st.session_state['patient_records']:
+        df_all = pd.DataFrame(st.session_state['patient_records'])
+        
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            selected_rancho = st.selectbox("Filtrar por Rancho / Predio", df_all["Rancho / Predio"].unique().tolist())
+        with col_f2:
+            df_filtered_rancho = df_all[df_all["Rancho / Predio"] == selected_rancho]
+            selected_id_rancho = st.selectbox("Seleccionar Animal en este Rancho", df_filtered_rancho["ID Paciente"].unique().tolist())
+            
+        df_final_view = df_filtered_rancho[df_filtered_rancho["ID Paciente"] == selected_id_rancho]
+        st.markdown(f"### Historial Clínico de **{selected_id_rancho}** (Predio: *{selected_rancho}*)")
+        st.dataframe(df_final_view, use_container_width=True)
+        
+        if st.button("🗑️ Limpiar Todos los Registros de Sesión"):
+            st.session_state['patient_records'] = []
+            st.rerun()
+    else:
+        st.info("Aún no hay expedientes clínicos registrados en la sesión actual.")
+
+
+# --- PESTAÑA 3: VADEMECUM MULTIESPECIE ---
+with tab_drugs:
+    st.subheader("💊 Vademecum Clínico y Calculadora de Dosificación Multiespecie")
+    st.markdown("Catálogo ampliado de fármacos adaptado desde pequeños animales hasta grandes rumiantes y equinos.")
+    
+    drug_database = {
+        "Oxitetraciclina L.A. (20%) [Antibiótico de amplio espectro]": {
+            "dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "especies": "Bovinos, Ovinos, Porcinos", "via": "IM profunda / SC", "indicacion": "Infecciones respiratorias y sistémicas graves."
+        },
+        "Ceftiofur Clorhidrato [Cefalosporina 3ra Gen]": {
+            "dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "especies": "Bovinos, Equinos, Caninos, Felinos", "via": "IM / SC", "indicacion": "Enfermedad respiratoria y pododermatitis."
+        },
+        "Enrofloxacina (10%) [Fluoroquinolona]": {
+            "dosis": 5.0, "unidad": "mg/kg", "concentracion": 100, "especies": "Bovinos, Porcinos, Caninos, Felinos", "via": "SC / IM / IV lenta", "indicacion": "Infecciones urogenitales y digestivas complejas."
+        },
+        "Meloxicam (2%) [Antiinflamatorio no esteroideo]": {
+            "dosis": 0.5, "unidad": "mg/kg", "concentracion":
