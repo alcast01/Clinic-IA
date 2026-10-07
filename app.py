@@ -425,4 +425,77 @@ with tab_audio:
             st.session_state['audio_result'] = {
                 "freq": "45.5 Hz",
                 "energy": "420.8 Units",
-                "status":
+                "status": "🟢 Motilidad Orgánica Normal: Patrón acústico rítmico con características homeostáticas adecuadas."
+            }
+            
+    st.divider()
+    st.subheader("📊 Reporte Diagnóstico Fonofónico")
+    if st.session_state['audio_result']:
+        res_audio = st.session_state['audio_result']
+        st.success("¡Análisis acústico procesado por IA con éxito!")
+        st.write(res_audio['status'])
+        
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.metric(label="Frecuencia Dominante", value=res_audio['freq'], delta="Normal")
+        with col_m2:
+            st.metric(label="Energía Espectral", value=res_audio['energy'], delta="Estable")
+    else:
+        st.info("💡 Sube un archivo de audio y haz clic en analizar para visualizar el espectrograma y métricas acústicas.")
+
+
+# --- PESTAÑA 6: VIDEOLLAMADA / URGENCIAS A DISTANCIA ---
+with tab_tele:
+    st.subheader("📅 Telemedicina Veterinaria: Agendar Videollamada de Urgencia / Distancia")
+    st.markdown("Conexión directa en tiempo real con el **Dr. Vet. Alejandro Castañeda Correa** para casos críticos o asesoría técnica en campo.")
+    
+    with st.form("tele_form"):
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            tele_client = st.text_input("Nombre del Propietario / Productor", value="Alejandro Castañeda")
+            tele_rancho = st.text_input("Rancho / Predio / Ubicación", value="Tlaltenango, Zacatecas")
+            tele_species = st.selectbox("Especie Involucrada", ["Bovino", "Equino", "Porcino", "Ovino", "Canino", "Felino"])
+        with col_t2:
+            tele_urgency = st.selectbox("Nivel de Urgencia", ["🔴 EMERGENCIA 24/7 (Atención Inmediata)", "🟠 Consulta Prioritaria (Hoy)", "🟡 Videollamada Programada (Próximos días)"])
+            tele_date = st.date_input("Fecha Preferida de Consulta")
+            tele_time = st.time_input("Hora Estimada")
+            
+        tele_motive = st.text_area("Descripción breve del caso clínico o emergencia", placeholder="Ej. Vaca caída con signos de hipocalcemia postparto / Cólico equino agudo...")
+        
+        submit_tele = st.form_submit_button("🚀 Agendar / Iniciar Videollamada de Urgencia", type="primary")
+        
+        if submit_tele:
+            meeting_id = f"CLINIC-IA-{np.random.randint(1000, 9999)}"
+            appointment = {
+                "ID Cita": meeting_id,
+                "Propietario": tele_client,
+                "Rancho": tele_rancho,
+                "Especie": tele_species,
+                "Urgencia": tele_urgency,
+                "Fecha/Hora": f"{tele_date} {tele_time}",
+                "Motivo": tele_motive,
+                "Enlace": f"https://meet.jit.si/{meeting_id}"
+            }
+            st.session_state['appointments'].append(appointment)
+            st.success("¡Cita de telemedicina registrada exitosamente!")
+
+    st.divider()
+    st.subheader("📌 Consultas y Urgencias Agendadas")
+    if st.session_state['appointments']:
+        df_app = pd.DataFrame(st.session_state['appointments'])
+        for idx, row in df_app.iterrows():
+            with st.container():
+                st.markdown(f"""
+                <div class="card">
+                    <h4>🚨 {row['Urgencia']} — Predio: {row['Rancho']}</h4>
+                    <p><b>Propietario:</b> {row['Propietario']} | <b>Especie:</b> {row['Especie']} | <b>Fecha:</b> {row['Fecha/Hora']}</p>
+                    <p><b>Motivo:</b> {row['Motivo']}</p>
+                    <p>🔗 <b>Enlace de Videollamada Segura:</b> <a href="{row['Enlace']}" target="_blank">{row['Enlace']}</a></p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+        if st.button("🗑️ Limpiar Citas Agendadas"):
+            st.session_state['appointments'] = []
+            st.rerun()
+    else:
+        st.info("No hay videollamadas de emergencia o distancia agendadas en la sesión actual.")
