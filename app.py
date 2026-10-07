@@ -243,7 +243,7 @@ class MexicanZoningAndForecastEngine:
     def get_regional_sanitary_profile(self):
         profiles = {
             "Zona Norte (Árida y Semiárida)": {
-                "focos_rojos": ["Tuberculosis Bovina (TB)", "Brucelosis (B. abortus)", "Queratoconjuntivitis Infecciosa Bovina", "Anaplasmosis margareta"],
+                "focos_rojos": ["Tuberculosis Bovina (TB)", "Brucelosis (B. abortus)", "Queratoconjuntivitis Infecciosa Bovina", "Anaplasmosis marginalis"],
                 "restricciones_senasica": "Control riguroso de movilización (Pruebas negativas de TB y Brucelosis vigentes para tránsito interestatal. Arete SINIIGA obligatorio).",
                 "manejo_recomendado": "Suplementación mineral estratégica en épocas de estiaje y control estricto de ectoparásitos por polvo y sequía."
             },
@@ -266,8 +266,7 @@ class MexicanZoningAndForecastEngine:
         return profiles.get(self.region_macro, profiles["Zona Centro - Occidente / Bajío"])
 
     def compute_disease_forecast(self, system_affected):
-        # Motor de pronóstico de brotes basado en clima, región y sistema afectado
-        risk_score = 45 # base
+        risk_score = 45
         forecast_alerts = []
 
         if "Lluvias" in self.season:
@@ -291,7 +290,6 @@ class MexicanZoningAndForecastEngine:
             forecast_alerts.append("📊 **Tendencia Zootécnica:** Incremento estacional de SARA debido a dietas altas en grano por escasez de forraje verde.")
 
         risk_score = min(98, max(15, risk_score))
-        
         nivel_riesgo = "CRÍTICO" if risk_score > 75 else ("MODERADO" if risk_score > 45 else "BAJO")
         
         return {
@@ -311,7 +309,6 @@ if pending_syncs > 0:
 else:
     st.sidebar.success("🟢 **Modo Sincronizado** (SENASICA Cloud Ready)")
 
-# Selector de Macro-Región y Estado de la República
 macro_region = st.sidebar.selectbox("🗺️ Macro-Región Ganadera", [
     "Zona Norte (Árida y Semiárida)", 
     "Zona Centro - Occidente / Bajío", 
@@ -330,7 +327,6 @@ estado_seleccionado = st.sidebar.selectbox("🏛️ Estado de la República", es
 municipio_input = st.sidebar.text_input("📍 Municipio / Localidad", value="Tlaltenango de Sánchez Román")
 
 sb_season = st.sidebar.selectbox("🌦️ Estación Climática Actual", ["Secas / Estiaje prolongado", "Lluvias / Humedad alta / Huracanes", "Transición / Frentes fríos (Nortes)"])
-
 sb_species = st.sidebar.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"])
 
 if sb_species in ["Bovino", "Ovino", "Caprino"]:
@@ -388,7 +384,7 @@ tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_tele
 
 # --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO Y SIFONEO NUTRICIONAL ---
 with tab_diag:
-    st.subheader(f"Evaluación Clínica de Precisión: Arete SINIIGA `[{current_patient_id}]`")
+    st.subheader(f"Evaluación Clínica de Precision: Arete SINIIGA `[{current_patient_id}]`")
     st.info(f"Ubicación activa: **{estado_seleccionado}, {municipio_input} ({macro_region})** | Estación: **{sb_season}**")
     
     col_d1, col_d2, col_d3 = st.columns(3)
@@ -410,11 +406,9 @@ with tab_diag:
         sign_4 = st.checkbox("Secreción óculo-nasal o descarga hemorrágica / disfonia")
 
     if st.button("Ejecutar Diagnóstico y Modelo Predictivo Nacional", type="primary"):
-        # Instanciar motor con contexto nacional
         engine = MexicanZoningAndForecastEngine(macro_region, estado_seleccionado, sb_season, sb_species, sb_prod_type)
-        vitals_eval = engine.get_regional_sanitary_profile() # solo referencia
+        vitals_eval = engine.get_regional_sanitary_profile()
         
-        # Simular diferenciales con base regional
         differentials = [
             {"dx": "Acidosis Ruminal Subaguda (SARA) / Trastorno Metabólico", "prob": 92 if "Digestivo" in sb_system else 65},
             {"dx": "Complejo Infeccioso Endémico Regional (SENASICA Foco Rojo)", "prob": 84},
@@ -476,84 +470,4 @@ with tab_zone:
         st.markdown(f"### 📍 Perfil Sanitario: `{estado_seleccionado}`")
         st.info(f"**Macro-Región:** {macro_region}\n\n**Restricciones y Campañas SENASICA / SADER:**\n{sanitary_profile['restricciones_senasica']}")
         
-        st.markdown("#### 🔴 Focos Rojos Epidemiológicos en la Zona")
-        for fr in sanitary_profile['focos_rojos']:
-            st.markdown(f"- ⚠️ {fr}")
-            
-    with col_z2:
-        st.markdown("### 🔮 Pronóstico y Alerta Epidemiológica Predictiva")
-        st.metric(label="Índice de Riesgo Predictivo de Brote", value=f"{forecast_current['score']}%", delta=forecast_current['nivel'], delta_inverse=True)
-        st.markdown(f"**Estacionalidad analizada:** `{sb_season}`")
-        
-        st.markdown("#### 📋 Recomendaciones de Manejo Preventivo:")
-        st.success(sanitary_profile['manejo_recomendado'])
-        for fa in forecast_current['alerts']:
-            st.write(fa)
-
-
-# --- PESTAÑA 3: HISTORIAL POR RANCHO (SQLITE OFFLINE) ---
-with tab_reg:
-    st.subheader("📁 Archivo Local de Pacientes y Sincronización Rural (Lazy Sync)")
-    st.markdown("Gestión offline-first de expedientes con control de estado y transmisión asíncrona hacia la nube.")
-    
-    col_sync1, col_sync2 = st.columns([3, 1])
-    with col_sync1:
-        pending_count = get_pending_sync_stats()
-        st.info(f"📊 Estado de Cola Local: **{pending_count} registros pendientes** de sincronizar con el servidor central.")
-    with col_sync2:
-        if st.button("🔄 Sincronizar con la Nube", type="secondary"):
-            sync_local_to_cloud_mock()
-            st.success("¡Sincronización completada con éxito!")
-            st.rerun()
-
-    st.divider()
-    
-    col_r1, col_r2 = st.columns(2)
-    with col_r1:
-        input_rancho = st.text_input("🏡 Nombre del Rancho / Predio", value="Rancho San José de los Tlaxcalas")
-        input_municipio = st.text_input("📍 Municipio / Localidad", value=municipio_input)
-    with col_r2:
-        input_arete = st.text_input("🆔 Arete SINIIGA / ID del Animal", value=current_patient_id)
-        reg_species = st.selectbox("Especie en Registro", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"], index=0 if sb_species=="Bovino" else 0)
-        
-    col_r3, col_r4 = st.columns(2)
-    with col_r3:
-        estimated_weight = st.number_input("Peso Actual (kg)", min_value=0.5, max_value=1500.0, value=float(st.session_state['last_estimated_weight']), step=0.5)
-    with col_r4:
-        clinical_notes = st.text_area("Hallazgos de Exploración y Plan Terapéutico")
-        
-    if st.button("Guardar Evento en Base de Datos Local SQLite", type="primary"):
-        if input_arete and input_rancho:
-            record = {
-                "Rancho / Predio": input_rancho.strip().title(),
-                "Municipio": input_municipio.strip().title(),
-                "Estado": estado_seleccionado,
-                "ID Paciente": input_arete.strip().upper(),
-                "Fecha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "Especie": reg_species,
-                "Raza": sb_breed,
-                "Sexo": sb_sex,
-                "Sistema Afectado": sb_system,
-                "Peso (kg)": estimated_weight,
-                "Notas Clínicas": clinical_notes
-            }
-            save_record_sqlite(record)
-            st.success(f"¡Expediente guardado en SQLite local (Estado: `pending`) para el predio **{input_rancho.upper()}** ({estado_seleccionado})!")
-            st.rerun()
-        else:
-            st.warning("Por favor completa el nombre del rancho y el arete SINIIGA del paciente.")
-
-    st.markdown("---")
-    st.subheader("🔍 Consulta de Expedientes Almacenados Localmente")
-    
-    df_all = load_records_sqlite()
-    if not df_all.empty:
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            selected_rancho = st.selectbox("Filtrar por Rancho / Predio", df_all["rancho"].unique().tolist())
-        with col_f2:
-            df_filtered_rancho = df_all[df_all["rancho"] == selected_rancho]
-            selected_id_rancho = st.selectbox("Seleccionar Animal en este Rancho", df_filtered_rancho["patient_id"].unique().tolist())
-            
-        df_final_view = df_filtered_rancho[df_filtered_rancho["patient_id"] == selected_id_rancho]
-        st.markdown(f"### Historial Local de **{selected_id_rancho}** (Predio: *{selected_ran
+        st.markdown("#### 🔴 Focos Rojos
