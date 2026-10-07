@@ -120,7 +120,7 @@ def sync_local_to_cloud_mock():
 
 
 # ==========================================
-# GENERADOR DE PDF PROFESIONAL CON FOLIO Y QR
+# GENERADOR DE PDF PROFESIONAL CON FOLIO
 # ==========================================
 class ClinicPDF(FPDF):
     def header(self):
@@ -188,7 +188,7 @@ def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, w
 
 
 # ==========================================
-# ESTILOS CSS VANGUARDISTAS Y DE EXCELENCIA
+# ESTILOS CSS VANGUARDISTAS
 # ==========================================
 st.markdown("""
 <style>
@@ -355,7 +355,7 @@ Plataforma Nacional Clinic-IA México<br><b>Dr. Vet. Alejandro Castañeda Correa
 """, unsafe_allow_html=True)
 
 # ==========================================
-# ENCABEZADO VANGUARDISTA CON LOGOTIPO
+# ENCABEZADO VANGUARDISTA
 # ==========================================
 st.markdown("""
 <div class="hero-container">
@@ -384,7 +384,7 @@ tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_tele
 
 # --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO Y SIFONEO NUTRICIONAL ---
 with tab_diag:
-    st.subheader(f"Evaluación Clínica de Precision: Arete SINIIGA `[{current_patient_id}]`")
+    st.subheader(f"Evaluación Clínica de Precisión: Arete SINIIGA `[{current_patient_id}]`")
     st.info(f"Ubicación activa: **{estado_seleccionado}, {municipio_input} ({macro_region})** | Estación: **{sb_season}**")
     
     col_d1, col_d2, col_d3 = st.columns(3)
@@ -470,4 +470,62 @@ with tab_zone:
         st.markdown(f"### 📍 Perfil Sanitario: `{estado_seleccionado}`")
         st.info(f"**Macro-Región:** {macro_region}\n\n**Restricciones y Campañas SENASICA / SADER:**\n{sanitary_profile['restricciones_senasica']}")
         
-        st.markdown("#### 🔴 Focos Rojos
+        st.markdown("#### 🔴 Focos Rojos Epidemiológicos en la Zona")
+        for fr in sanitary_profile['focos_rojos']:
+            st.markdown(f"- ⚠️ {fr}")
+            
+    with col_z2:
+        st.markdown("### 🔮 Pronóstico y Alerta Epidemiológica Predictiva")
+        st.metric(label="Índice de Riesgo Predictivo de Brote", value=f"{forecast_current['score']}%", delta=forecast_current['nivel'], delta_inverse=True)
+        st.markdown(f"**Estacionalidad analizada:** `{sb_season}`")
+        
+        st.markdown("#### 📋 Recomendaciones de Manejo Preventivo:")
+        st.success(sanitary_profile['manejo_recomendado'])
+        for fa in forecast_current['alerts']:
+            st.write(fa)
+
+
+# --- PESTAÑA 3: HISTORIAL POR RANCHO (SQLITE) ---
+with tab_reg:
+    st.subheader("📁 Archivo Local de Pacientes y Sincronización Rural (Lazy Sync)")
+    st.markdown("Gestión offline-first de expedientes con control de estado y transmisión asíncrona hacia la nube.")
+    
+    col_sync1, col_sync2 = st.columns([3, 1])
+    with col_sync1:
+        pending_count = get_pending_sync_stats()
+        st.info(f"📊 Estado de Cola Local: **{pending_count} registros pendientes** de sincronizar con el servidor central.")
+    with col_sync2:
+        if st.button("🔄 Sincronizar con la Nube", type="secondary"):
+            sync_local_to_cloud_mock()
+            st.success("¡Sincronización completada con éxito!")
+            st.rerun()
+
+    st.divider()
+    
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        input_rancho = st.text_input("🏡 Nombre del Rancho / Predio", value="Rancho San José de los Tlaxcalas")
+        input_municipio = st.text_input("📍 Municipio / Localidad", value=municipio_input)
+    with col_r2:
+        input_arete = st.text_input("🆔 Arete SINIIGA / ID del Animal", value=current_patient_id)
+        reg_species = st.selectbox("Especie en Registro", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"], index=0 if sb_species=="Bovino" else 0)
+        
+    col_r3, col_r4 = st.columns(2)
+    with col_r3:
+        estimated_weight = st.number_input("Peso Actual (kg)", min_value=0.5, max_value=1500.0, value=float(st.session_state['last_estimated_weight']), step=0.5)
+    with col_r4:
+        clinical_notes = st.text_area("Hallazgos de Exploración y Plan Terapéutico")
+        
+    if st.button("Guardar Evento en Base de Datos Local SQLite", type="primary"):
+        if input_arete and input_rancho:
+            record = {
+                "Rancho / Predio": input_rancho.strip().title(),
+                "Municipio": input_municipio.strip().title(),
+                "Estado": estado_seleccionado,
+                "ID Paciente": input_arete.strip().upper(),
+                "Fecha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "Especie": reg_species,
+                "Raza": sb_breed,
+                "Sexo": sb_sex,
+                "Sistema Afectado": sb_system,
+                "Peso (kg
