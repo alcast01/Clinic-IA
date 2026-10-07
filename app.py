@@ -134,20 +134,18 @@ class AdvancedClinicalEngine:
 
 
 # ==========================================
-# PANEL LATERAL DE CAMPO Y RESEÑA
+# PANEL LATERAL DE CAMPO Y RESEÑA (CORREGIDO)
 # ==========================================
 st.sidebar.markdown("### 🩺 Panel Clínico de Precisión")
 st.sidebar.markdown("Parámetros inteligentes para anamnesis integral.")
 
-with st.sidebar.expander("🏷️ 1. Reseña y Señalamiento", expanded=True):
-    sb_species = st.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Canino", "Felino"])
+sb_species = st.sidebar.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Canino", "Felino"])
+
+if sb_species == "Bovino":
+    sb_breed = st.sidebar.selectbox("Raza / Biotipo", ["Holstein", "Beefmaster", "Angus", "Cebú / Brahman", "Suizo Pardo", "Cruzado"])
+    sb_prod_type = "Leche" if st.sidebar.selectbox("Propósito", ["Leche", "Carne"]) == "Leche" else "Carne"
+else:
+    sb_breed = st.sidebar.text_input("Raza / Biotipo", value="Estándar / Mestizo")
+    sb_prod_type = "general"
     
-    if sb_species == "Bovino":
-        sb_breed = st.selectbox("Raza / Biotipo", ["Holstein", "Beefmaster", "Angus", "Cebú / Brahman", "Suizo Pardo", "Cruzado"])
-        sb_prod_type = "Leche" if st.selectbox("Propósito", ["Leche", "Carne"]) == "Leche" else "Carne"
-    else:
-        sb_breed = st.text_input("Raza / Biotipo", value="Estándar / Mestizo")
-        sb_prod_type = "general"
-        
-    sb_age_group = st.selectbox("Grupo Etario", ["Neonato / Cría", "Juvenil / Levante", "Adulto en Producción / Mantenimiento", "Geriátrico / Reproductor"])
-    sb_sex
+sb_age_group = st.sidebar.selectbox("Grupo Et
