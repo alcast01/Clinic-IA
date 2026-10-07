@@ -6,12 +6,87 @@ from PIL import Image
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Clinic-IA - Diagnóstico y Campo Avanzado",
+    page_title="Clinic-IA | Veterinaria de Precisión",
     page_icon="🩺",
     layout="wide"
 )
 
-# Inicializar almacenamiento en sesión para historiales por arete
+# ==========================================
+# ESTILOS CSS VANGUARDISTAS Y DE EXCELENCIA
+# ==========================================
+st.markdown("""
+<style>
+    /* Estilo general de la aplicación */
+    .main {
+        background-color: #f8fafc;
+    }
+    
+    /* Tarjeta de Encabezado Principal */
+    .hero-container {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        padding: 2.5rem;
+        border-radius: 16px;
+        color: white;
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+    .hero-logo {
+        font-size: 4rem;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hero-title {
+        font-size: 2.75rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.025em;
+        color: #ffffff;
+    }
+    .hero-subtitle {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        margin-top: 0.5rem;
+        font-weight: 400;
+    }
+    .hero-author {
+        font-size: 0.85rem;
+        color: #38bdf8;
+        margin-top: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Estilización de Contenedores y Tarjetas */
+    .card {
+        background-color: #ffffff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
+    }
+    
+    /* Botones personalizados */
+    .stButton button {
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    /* Sidebar refinada */
+    css-1d391kg {
+        background-color: #0f172a;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Inicializar almacenamiento en sesión
 if 'patient_records' not in st.session_state:
     st.session_state['patient_records'] = []
 if 'last_estimated_weight' not in st.session_state:
@@ -111,8 +186,8 @@ class FieldDiagnostics:
 # ==========================================
 # PANEL LATERAL: VARIABLES CLÍNICAS Y ANAMNESIS
 # ==========================================
-st.sidebar.title("🩺 Panel Clínico de Campo")
-st.sidebar.markdown("Variables integradas para diagnóstico integral.")
+st.sidebar.markdown("### 🩺 Panel Clínico de Campo")
+st.sidebar.markdown("Parámetros inteligentes para anamnesis integral.")
 
 with st.sidebar.expander("🏷️ 1. Reseña y Señalamiento", expanded=True):
     sb_species = st.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino"])
@@ -139,24 +214,35 @@ st.sidebar.markdown("---")
 current_patient_id = st.sidebar.text_input("🆔 Arete / ID Activo para Consulta", value="ARETE-001")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("👨‍⚕️ **Desarrollado por:**  \nDr. Vet. Alejandro Castañeda Correa")
+st.sidebar.markdown(
+    "<div style='text-align: center; color: #64748b; font-size: 0.85rem; padding: 10px;'>"
+    "Diseñado y desarrollado por<br><b>Dr. Vet. Alejandro Castañeda Correa</b>"
+    "</div>", 
+    unsafe_allow_html=True
+)
 
 
 # ==========================================
-# INTERFAZ PRINCIPAL (ENCABEZADO CON LOGOTIPO Y SLOGAN)
+# ENCABEZADO VANGUARDISTA CON LOGOTIPO
 # ==========================================
-col_logo, col_title = st.columns([1, 8])
-with col_logo:
-    st.markdown("# 🩺")
-with col_title:
-    st.title("Clinic-IA")
-    st.markdown("*\"Precisión diagnóstica e inteligencia artificial avanzada para la clínica veterinaria de campo.\"*")
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-logo">🧬</div>
+    <div>
+        <h1 class="hero-title">Clinic-IA</h1>
+        <p class="hero-subtitle">Precisión diagnóstica e inteligencia artificial avanzada para la clínica veterinaria de campo.</p>
+        <p class="hero-author">Autor: Dr. Vet. Alejandro Castañeda Correa</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-st.divider()
 
+# ==========================================
+# INTERFAZ DE PESTAÑAS PRINCIPALES
+# ==========================================
 tab_diag, tab_reg, tab_drugs, tab_weight, tab_audio = st.tabs([
     "🩺 Diagnóstico Clínico", 
-    "📁 Historial por Arete y Registro", 
+    "📁 Historial por Arete", 
     "💊 Fármacos y Dosificación", 
     "⚖️ Estimación de Peso (IA)",
     "🔊 Fonofonía Ruminal (IA)"
@@ -322,7 +408,4 @@ with tab_audio:
         st.audio(audio_file)
         if st.button("🔬 Analizar Espectro Acústico (FFT)"):
             st.success("¡Análisis acústico simulado por IA completado!")
-            st.markdown("### Diagnóstico Fonofónico:")
-            st.write("🟢 **Motilidad Ruminal Normal:** Patrón acústico rítmico con predominio de bajas frecuencias (3 contracciones por minuto).")
-            st.metric(label="Frecuencia Dominante (Peak Frequency)", value="45.5 Hz")
-            st.metric(label="Energía Espectral Promedio", value="420.8")
+            st.markdown("### Diagnóstico Fon
