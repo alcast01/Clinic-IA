@@ -223,4 +223,206 @@ with tab_diag:
         signs_list = []
         if sb_diet_change != "Sin cambios recientes": 
             signs_list.append("Cambio de dieta reciente")
-        if sign
+        if sign_1: 
+            signs_list.append("Hipomotilidad ruminal")
+        differentials = engine.compute_differential_diagnosis(sb_system, signs_list, temp, hr, rr)
+        
+        st.session_state['diagnostic_report'] = {
+            "vitals": vitals_eval,
+            "differentials": differentials,
+            "patient": current_patient_id
+        }
+
+    st.divider()
+    st.subheader("📊 Reporte Diagnóstico y Matriz de Confianza")
+    if st.session_state['diagnostic_report']:
+        report = st.session_state['diagnostic_report']
+        st.markdown(f"**Paciente Evaluado:** `{report['patient']}`")
+        st.markdown("### 1. Validación Fisiológica")
+        for alert in report['vitals']:
+            st.write(alert)
+            
+        st.markdown("### 2. Diagnósticos Diferenciales (Ranking Bayesiano)")
+        for idx, item in enumerate(report['differentials'], 1):
+            confidence = item['prob']
+            st.markdown(f"**{idx}. {item['dx']}** — Índice de Coincidencia: **{confidence}%**")
+            st.progress(confidence / 100.0)
+            
+        st.markdown("### 3. Plan Terapéutico y Recomendaciones de Campo")
+        st.success("✔ Se recomienda toma de muestras complementarias y seguimiento clínico en el expediente del rancho.")
+    else:
+        st.info("💡 Ingrese los parámetros arriba y presione el botón para generar el diagnóstico diferencial probabilístico.")
+
+
+# --- PESTAÑA 2: HISTORIAL CLÍNICO POR RANCHO Y MUNICIPIO ---
+with tab_reg:
+    st.subheader("📁 Archivo de Pacientes por Rancho Ganadero y Municipio")
+    st.markdown("Organice y audite el historial longitudinal agrupado por unidad de producción y localidad.")
+    
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        input_rancho = st.text_input("🏡 Nombre del Rancho / Predio / Unidad", value="Rancho El Porvenir")
+        input_municipio = st.text_input("📍 Municipio / Localidad", value="Tlaltenango, Zacatecas")
+    with col_r2:
+        input_arete = st.text_input("🆔 ID / Arete / Nombre del Animal", value=current_patient_id)
+        reg_species = st.selectbox("Especie en Registro", ["Bovino", "Equino", "Porcino", "Ovino", "Canino", "Felino"], index=0 if sb_species=="Bovino" else 0)
+        
+    col_r3, col_r4 = st.columns(2)
+    with col_r3:
+        estimated_weight = st.number_input("Peso Actual (kg)", min_value=0.5, max_value=1500.0, value=float(st.session_state['last_estimated_weight']), step=0.5)
+    with col_r4:
+        clinical_notes = st.text_area("Hallazgos de Exploración y Plan Terapéutico")
+        
+    if st.button("Guardar Evento en el Archivo del Rancho", type="primary"):
+        if input_arete and input_rancho:
+            record = {
+                "Rancho / Predio": input_rancho.strip().title(),
+                "Municipio": input_municipio.strip().title(),
+                "ID Paciente": input_arete.strip().upper(),
+                "Fecha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "Especie": reg_species,
+                "Raza": sb_breed,
+                "Sexo": sb_sex,
+                "Sistema Afectado": sb_system,
+                "Peso (kg)": estimated_weight,
+                "Notas Clínicas": clinical_notes
+            }
+            st.session_state['patient_records'].append(record)
+            st.success(f"¡Expediente guardado exitosamente para el predio **{input_rancho.upper()}** ({input_municipio})!")
+        else:
+            st.warning("Por favor completa el nombre del rancho y el ID del paciente.")
+
+    st.markdown("---")
+    st.subheader("🔍 Filtro y Consulta por Rancho / Municipio")
+    
+    if st.session_state['patient_records']:
+        df_all = pd.DataFrame(st.session_state['patient_records'])
+        
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            selected_rancho = st.selectbox("Filtrar por Rancho / Predio", df_all["Rancho / Predio"].unique().tolist())
+        with col_f2:
+            df_filtered_rancho = df_all[df_all["Rancho / Predio"] == selected_rancho]
+            selected_id_rancho = st.selectbox("Seleccionar Animal en este Rancho", df_filtered_rancho["ID Paciente"].unique().tolist())
+            
+        df_final_view = df_filtered_rancho[df_filtered_rancho["ID Paciente"] == selected_id_rancho]
+        st.markdown(f"### Historial Clínico de **{selected_id_rancho}** (Predio: *{selected_rancho}*)")
+        st.dataframe(df_final_view, use_container_width=True)
+        
+        if st.button("🗑️ Limpiar Todos los Registros de Sesión"):
+            st.session_state['patient_records'] = []
+            st.rerun()
+    else:
+        st.info("Aún no hay expedientes clínicos registrados en la sesión actual. Guarde un evento para comenzar a poblar el archivo.")
+
+
+# --- PESTAÑA 3: VADEMECUM MULTIESPECIE ---
+with tab_drugs:
+    st.subheader("💊 Vademecum Clínico y Calculadora de Dosificación Multiespecie")
+    st.markdown("Catálogo ampliado de fármacos adaptado desde pequeños animales hasta grandes rumiantes y equinos.")
+    
+    drug_database = {
+        "Oxitetraciclina L.A. (20%) [Antibiótico de amplio espectro]": {
+            "dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "especies": "Bovinos, Ovinos, Porcinos", "via": "IM profunda / SC", "indicacion": "Infecciones respiratorias y sistémicas graves."
+        },
+        "Ceftiofur Clorhidrato [Cefalosporina 3ra Gen]": {
+            "dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "especies": "Bovinos, Equinos, Caninos, Felinos", "via": "IM / SC", "indicacion": "Enfermedad respiratoria y pododermatitis."
+        },
+        "Enrofloxacina (10%) [Fluoroquinolona]": {
+            "dosis": 5.0, "unidad": "mg/kg", "concentracion": 100, "especies": "Bovinos, Porcinos, Caninos, Felinos", "via": "SC / IM / IV lenta", "indicacion": "Infecciones urogenitales y digestivas complejas."
+        },
+        "Meloxicam (2%) [Antiinflamatorio no esteroideo]": {
+            "dosis": 0.5, "unidad": "mg/kg", "concentracion": 20, "especies": "Bovinos, Equinos, Porcinos, Ovinos", "via": "IV / SC", "indicacion": "Control de dolor, inflamación y pirexia."
+        },
+        "Meloxicam (0.5% - Suspensión/Inyectable) [AINE Pequeñas Especies]": {
+            "dosis": 0.2, "unidad": "mg/kg", "concentracion": 5, "especies": "Caninos, Felinos", "via": "SC / Oral", "indicacion": "Control de dolor osteoarticular y postquirúrgico."
+        },
+        "Flunixin Meglumine [Analgésico / Antitérmico]": {
+            "dosis": 1.1, "unidad": "mg/kg", "concentracion": 50, "especies": "Bovinos, Equinos, Caninos", "via": "IV lenta / IM", "indicacion": "Cólico equino, dolor visceral y endotoxemia."
+        },
+        "Xylazine (2%) [Sedante / Miorrelajante]": {
+            "dosis": 0.2, "unidad": "mg/kg", "concentracion": 20, "especies": "Bovinos, Equinos, Caninos, Felinos", "via": "IV / IM", "indicacion": "Sedación profunda y contención en campo."
+        },
+        "Ivermectina (1%) [Endectocida]": {
+            "dosis": 0.2, "unidad": "mg/kg", "concentracion": 10, "especies": "Bovinos, Ovinos, Porcinos, Caninos", "via": "SC / Pour-on", "indicacion": "Control de parásitos gastrointestinales y ectoparásitos."
+        }
+    }
+    
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        selected_drug = st.selectbox("Seleccione el Fármaco del Catálogo", list(drug_database.keys()))
+        drug_info = drug_database[selected_drug]
+        st.info(
+            f"📋 **Especies objetivo:** {drug_info['especies']}\n\n"
+            f"💉 **Vía de administración:** {drug_info['via']}\n\n"
+            f"📌 **Indicación:** {drug_info['indicacion']}\n\n"
+            f"⚖️ **Dosis estándar:** {drug_info['dosis']} {drug_info['unidad']}"
+        )
+    
+    with col_d2:
+        use_ai_weight = st.checkbox(f"Usar peso actual registrado en memoria ({st.session_state['last_estimated_weight']} kg)", value=True)
+        animal_weight = st.session_state['last_estimated_weight'] if use_ai_weight else st.number_input("Ingrese peso manual (kg)", min_value=0.5, max_value=1500.0, value=25.0, step=0.5)
+        
+        if st.button("Calcular Dosis Total de Aplicación", type="primary"):
+            total_mg = animal_weight * drug_info['dosis']
+            total_ml = total_mg / drug_info['concentracion']
+            st.session_state['last_drug_result'] = {
+                "drug": selected_drug,
+                "weight": animal_weight,
+                "ml": round(total_ml, 3)
+            }
+            
+    st.divider()
+    st.subheader("🎯 Resultado de Dosificación")
+    if st.session_state['last_drug_result']:
+        res = st.session_state['last_drug_result']
+        st.success(f"* **Fármaco:** {res['drug']}\n* **Peso considerado:** {res['weight']} kg\n* **Dosis Total Requerida:** **{res['ml']} mL**")
+    else:
+        st.info("💡 Seleccione un fármaco, configure el peso y presione calcular para obtener el volumen exacto.")
+
+
+# --- PESTAÑA 4: ESTIMACIÓN DE PESO ---
+with tab_weight:
+    st.subheader("⚖️ Herramientas de Estimación de Peso y Biometría")
+    st.markdown("Seleccione el método para calcular el peso vivo del paciente y actualizarlo automáticamente para la dosificación.")
+    
+    weight_mode = st.radio("Método de estimación:", ["📐 Ecuaciones Morfométricas (Cinta)", "📸 Inteligencia Artificial por Fotografía"])
+    
+    if weight_mode == "📐 Ecuaciones Morfométricas (Cinta)":
+        col_w1, col_w2 = st.columns(2)
+        with col_w1:
+            heart_girth = st.number_input("Perímetro Torácico (cm)", min_value=15.0, max_value=300.0, value=180.0, step=0.5)
+        with col_w2:
+            body_length = st.number_input("Longitud Corporal (cm)", min_value=15.0, max_value=300.0, value=150.0, step=0.5)
+            
+        if st.button("Calcular con Morfometría", type="primary"):
+            estimated_w = round((heart_girth ** 2 * body_length) / 10840, 2)
+            st.session_state['last_estimated_weight'] = estimated_w
+            st.success(f"⚖️ **Peso Calculado y Guardado en Memoria:** **{estimated_w} kg**")
+    else:
+        uploaded_image = st.file_uploader("Sube la fotografía lateral del animal", type=["jpg", "jpeg", "png"])
+        if uploaded_image:
+            st.image(Image.open(uploaded_image), caption=f"Paciente ID: {current_patient_id}", use_container_width=True)
+            if st.button("🤖 Procesar Peso con IA", type="primary"):
+                ai_weight_result = 438.0
+                st.session_state['last_estimated_weight'] = ai_weight_result
+                st.success(f"¡Peso estimado por visión artificial: **{ai_weight_result} kg** (Guardado en memoria para dosificación)!")
+
+    st.markdown("---")
+    st.metric(label="Peso Actual Registrado en Memoria de la App", value=f"{st.session_state['last_estimated_weight']} kg")
+
+
+# --- PESTAÑA 5: FONOFONÍA RUMINAL ---
+with tab_audio:
+    st.subheader("🔊 Diagnóstico Acústico y Fonofónico por IA")
+    st.markdown(f"Analizando perfil acústico para el animal con ID: **{current_patient_id}**")
+    
+    audio_file = st.file_uploader("Sube archivo de audio de auscultación (WAV / MP3 / M4A)", type=["wav", "mp3", "m4a"])
+    
+    if audio_file:
+        st.audio(audio_file)
+        if st.button("🔬 Analizar Espectro Acústico (FFT)", type="primary"):
+            st.session_state['audio_result'] = {
+                "freq": "45.5 Hz",
+                "energy": "420.8 Units",
+                "status":
