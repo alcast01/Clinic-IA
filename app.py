@@ -202,4 +202,4 @@ with tab_diag:
         with c1:
             temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.5, step=0.1)
         with c2:
-            hr = st.number_input("Frecuencia Cardíaca (lpm)", min_value=10, max_value=2
+            hr = st
