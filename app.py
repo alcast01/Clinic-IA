@@ -143,46 +143,4 @@ st.sidebar.markdown("Parámetros inteligentes para anamnesis integral.")
 
 sb_species = st.sidebar.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Canino", "Felino"])
 
-if sb_species == "Bovino":
-    sb_breed = st.sidebar.selectbox("Raza / Biotipo", ["Holstein", "Beefmaster", "Angus", "Cebú / Brahman", "Suizo Pardo", "Cruzado"])
-    sb_prod_type = "Leche" if st.sidebar.selectbox("Propósito", ["Leche", "Carne"]) == "Leche" else "Carne"
-else:
-    sb_breed = st.sidebar.text_input("Raza / Biotipo", value="Estándar / Mestizo")
-    sb_prod_type = "general"
-    
-sb_age_group = st.sidebar.selectbox("Grupo Etario", ["Neonato / Cría", "Juvenil / Levante", "Adulto en Producción / Mantenimiento", "Geriátrico / Reproductor"])
-sb_sex = st.sidebar.selectbox("Sexo", ["Hembra", "Macho", "Macho Castrado"])
-
-sb_evolution = st.sidebar.selectbox("Tiempo de Evolución", ["Hiperagudo (< 12 hrs)", "Agudo (12 - 48 hrs)", "Subagudo (3 - 7 días)", "Crónico (> 7 días)"])
-sb_morbidity = st.sidebar.selectbox("Incidencia en el Lote / Colectivo", ["Caso esporádico (1 animal)", "Brote focal (2 a 5 animales)", "Brote masivo (> 10%)"])
-sb_system = st.sidebar.selectbox("Sistema Principal Afectado", ["Digestivo / Metabólico", "Respiratorio", "Locomotor / Podal", "Reproductivo / Urogenital", "Nervioso / Infeccioso sistémico"])
-
-sb_system_prod = st.sidebar.selectbox("Sistema de Alojamiento", ["Estabulación total / Confinamiento", "Pastoreo intensivo rotacional", "Sistema mixto / Doméstico"])
-sb_diet_change = st.sidebar.selectbox("Factor de Riesgo / Dieta", ["Sin cambios recientes", "Cambio abrupto de dieta (< 48 hrs)", "Acceso a tóxicos / Cuerpos extraños", "Estrés por transporte / climas"])
-
-current_patient_id = st.sidebar.text_input("🆔 Arete / ID / Nombre del Paciente", value="ANIMAL-001")
-
-st.sidebar.markdown("""
-<div style='text-align: center; color: #64748b; font-size: 0.85rem; padding: 10px;'>
-Diseñado y desarrollado por<br><b>Dr. Vet. Alejandro Castañeda Correa</b>
-</div>
-""", unsafe_allow_html=True)
-
-# ==========================================
-# ENCABEZADO VANGUARDISTA CON LOGOTIPO
-# ==========================================
-st.markdown("""
-<div class="hero-container">
-    <div class="hero-logo">🧬</div>
-    <div>
-        <h1 class="hero-title">Clinic-IA</h1>
-        <p class="hero-subtitle">Plataforma experta de diagnóstico clínico veterinario con motores de inferencia probabilística.</p>
-        <p class="hero-author">Autor: Dr. Vet. Alejandro Castañeda Correa</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ==========================================
-# PESTAÑAS PRINCIPALES (6 SECCIONES)
-# ==========================================
-tab_diag, tab_reg, tab
+if sb_species == "Bov
