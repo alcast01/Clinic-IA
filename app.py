@@ -43,11 +43,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Inicializar sesión
+# Inicializar sesión y variables de persistencia
 if 'patient_records' not in st.session_state:
     st.session_state['patient_records'] = []
 if 'last_estimated_weight' not in st.session_state:
     st.session_state['last_estimated_weight'] = 450.0
+if 'last_drug_result' not in st.session_state:
+    st.session_state['last_drug_result'] = None
+if 'audio_analyzed' not in st.session_state:
+    st.session_state['audio_analyzed'] = False
 
 # ==========================================
 # MOTOR DE DECISIÓN CLÍNICA Y DIAGNÓSTICO (CDSS)
@@ -82,9 +86,7 @@ class AdvancedClinicalEngine:
         return alerts if alerts else ["✅ Constantes fisiológicas dentro de parámetros normales."]
 
     def compute_differential_diagnosis(self, system_affected, clinical_signs_list, temp, hr, rr):
-        r = self.get_physiological_ranges()
         differentials = []
-        
         if self.species in ["bovino", "ovino"]:
             if system_affected == "Digestivo / Metabólico":
                 differentials = [
@@ -99,7 +101,6 @@ class AdvancedClinicalEngine:
                 ]
             else:
                 differentials = [{"dx": "Trastorno sistémico multifactorial de origen metabólico/infeccioso", "prob": 65}]
-                
         elif self.species == "equino":
             if system_affected == "Digestivo / Metabólico":
                 differentials = [
@@ -108,7 +109,6 @@ class AdvancedClinicalEngine:
                 ]
             else:
                 differentials = [{"dx": "Obstrucción de Vías Aéreas Superiores / EPPA", "prob": 82}]
-                
         elif self.species in ["canino", "felino"]:
             if system_affected == "Digestivo / Metabólico":
                 differentials = [
@@ -261,7 +261,6 @@ with tab_reg:
             
         col_r3, col_r4 = st.columns(2)
         with col_r3:
-            # Escala amplia y adaptada de gato (1 kg) a bovino/equino (1500 kg)
             estimated_weight = st.number_input("Peso Actual (kg)", min_value=0.5, max_value=1500.0, value=st.session_state['last_estimated_weight'], step=0.5)
         with col_r4:
-            clinical_notes = st
+            clinical_notes = st.text_area("
