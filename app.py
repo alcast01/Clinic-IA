@@ -468,7 +468,13 @@ with tab_zone:
     col_z1, col_z2 = st.columns(2)
     with col_z1:
         st.markdown(f"### 📍 Perfil Sanitario: `{estado_seleccionado}`")
-        st.info(f"**Macro-Región:** {macro_region}\n\n**Restricciones y Campañas SENASICA / SADER:**\n{sanitary_profile['restricciones_senasica']}")
+        
+        sanitary_info_text = (
+            f"**Macro-Región:** {macro_region}\n\n"
+            "**Restricciones y Campañas SENASICA / SADER:**\n"
+            f"{sanitary_profile['restricciones_senasica']}"
+        )
+        st.info(sanitary_info_text)
         
         st.markdown("#### 🔴 Focos Rojos Epidemiológicos en la Zona")
         for fr in sanitary_profile['focos_rojos']:
@@ -850,4 +856,3 @@ with tab_tele:
                 """, unsafe_allow_html=True)
     else:
         st.info("No hay videollamadas de emergencia o distancia agendadas en la base de datos local.")
-        
