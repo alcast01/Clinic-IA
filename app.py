@@ -205,11 +205,12 @@ st.markdown("""
         gap: 2rem;
     }
     .hero-logo {
-        font-size: 4rem;
+        font-size: 3.5rem;
         background: rgba(255, 255, 255, 0.1);
-        padding: 1rem 1.5rem;
+        padding: 1rem 1.25rem;
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.2);
+        text-align: center;
     }
     .hero-title { font-size: 2.75rem; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.025em; }
     .hero-subtitle { font-size: 1.1rem; color: #94a3b8; margin-top: 0.5rem; font-weight: 400; }
@@ -302,7 +303,7 @@ class MexicanZoningAndForecastEngine:
 # ==========================================
 # PANEL LATERAL DE MÉXICO Y ZONIFICACIÓN
 # ==========================================
-st.sidebar.markdown("### 🇲🇽 Panel Nacional de Sanidad (México)")
+st.sidebar.markdown("### 🧬🩺 Clinic-IA | Sanidad y Precisión")
 pending_syncs = get_pending_sync_stats()
 if pending_syncs > 0:
     st.sidebar.warning(f"🟡 **Modo Offline Rural:** `{pending_syncs}` registros pendientes de sincronizar.")
@@ -355,11 +356,11 @@ Plataforma Nacional Clinic-IA México<br><b>Dr. Vet. Alejandro Castañeda Correa
 """, unsafe_allow_html=True)
 
 # ==========================================
-# ENCABEZADO VANGUARDISTA
+# ENCABEZADO VANGUARDISTA CON LOGOTIPO TECNOLÓGICO-VETERINARIO
 # ==========================================
 st.markdown("""
 <div class="hero-container">
-    <div class="hero-logo">🇲🇽</div>
+    <div class="hero-logo">🧬🩺</div>
     <div>
         <h1 class="hero-title">Clinic-IA México</h1>
         <p class="hero-subtitle">Sistema experto de diagnóstico veterinario, zonificación sanitaria SENASICA y pronóstico epidemiológico predictivo.</p>
