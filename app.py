@@ -222,4 +222,447 @@ st.markdown("""
     .hero-title { font-size: 2.75rem; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.025em; }
     .hero-subtitle { font-size: 1.1rem; color: #94a3b8; margin-top: 0.5rem; font-weight: 400; }
     .hero-author { font-size: 0.85rem; color: #38bdf8; margin-top: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .card { background-color: #ffffff; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0
+    .card { background-color: #ffffff; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 1rem; }
+    .stButton button { border-radius: 8px; font-weight: 600; transition: all 0.3s ease; }
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# INICIALIZACIÓN DE ESTADO DE SESIÓN
+# ==========================================
+if 'last_estimated_weight' not in st.session_state:
+    st.session_state['last_estimated_weight'] = 450.0
+if 'last_drug_result' not in st.session_state:
+    st.session_state['last_drug_result'] = None
+if 'diagnostic_report' not in st.session_state:
+    st.session_state['diagnostic_report'] = None
+
+# ==========================================
+# MOTOR DE ZONIFICACIÓN Y PRONÓSTICO MÉXICO
+# ==========================================
+class MexicanZoningAndForecastEngine:
+    def __init__(self, region_macro, estado, season, species, system_prod):
+        self.region_macro = region_macro
+        self.estado = estado
+        self.season = season
+        self.species = species.lower()
+        self.system_prod = system_prod.lower()
+
+    def get_regional_sanitary_profile(self):
+        profiles = {
+            "Zona Norte (Árida y Semiárida)": {
+                "focos_rojos": ["Tuberculosis Bovina (TB)", "Brucelosis (B. abortus)", "Queratoconjuntivitis Infecciosa Bovina", "Anaplasmosis marginalis"],
+                "restricciones_senasica": "Control riguroso de movilización (Pruebas negativas de TB y Brucelosis vigentes para tránsito interestatal. Arete SINIIGA obligatorio).",
+                "manejo_recomendado": "Suplementación mineral estratégica en épocas de estiaje y control estricto de ectoparásitos por polvo y sequía."
+            },
+            "Zona Centro - Occidente / Bajío": {
+                "focos_rojos": ["Acidosis Ruminal Subaguda (SARA)", "Mastitis bovina subclínica/clínica", "Rabia Paralítica Bovina (Derriengue por murciélago)", "Leptospirosis"],
+                "restricciones_senasica": "Campañas de vacunación obligatoria contra Derriengue en zonas endémicas y control de mastitis en sistemas lecheros especializados.",
+                "manejo_recomendado": "Monitoreo constante de FDN efectiva en raciones TMR y vacunación anual contra clostridiosis y leptospirosis."
+            },
+            "Zona Golfo y Trópico Húmedo": {
+                "focos_rojos": ["Hemoparasitosis (Anaplasmosis y Babesiosis)", "Carbón Sintomático y Edema Maligno", "Estomatitis Vesicular", "Fiebre Porcina Clásica / Vigilancia activa"],
+                "restricciones_senasica": "Control estricto del vector (Garrapata *Rhipicephalus microplus*), baños garrapaticidas calendarizados y restricciones de movilización en zonas de erradicación.",
+                "manejo_recomendado": "Manejo rotacional de potreros para disminuir carga parasitaria y programas de inmunización contra clostridios antes de la temporada de lluvias."
+            },
+            "Zona Sur - Sureste y Península": {
+                "focos_rojos": ["Tuberculosis bovina en zonas tropicales", "Gusano Barrenador del Ganado (Vigilancia Fronteriza Sur)", "Complejo Respiratorio por estrés de humedad", "Parasitosis gastrointestinal severa"],
+                "restricciones_senasica": "Vigilancia epidemiológica activa para prevención de entrada de plagas transfronterizas y certificación de hatos libres.",
+                "manejo_recomendado": "Desparasitación estratégica basada en contención coproparasitoscópica y suplementación mineral con alta biodisponibilidad."
+            }
+        }
+        return profiles.get(self.region_macro, profiles["Zona Centro - Occidente / Bajío"])
+
+    def compute_disease_forecast(self, system_affected):
+        risk_score = 45
+        forecast_alerts = []
+
+        if "Lluvias" in self.season:
+            if "Golfo" in self.region_macro or "Sur" in self.region_macro:
+                risk_score += 42
+                forecast_alerts.append("🔴 **Alerta Roja por Vectores:** Alta probabilidad de brotes de Anaplasmosis y Babesiosis por proliferación de garrapata en temporada de humedad.")
+                forecast_alerts.append("⚠️ **Alerta Sanitaria:** Incremento en incidencia de pododermatitis infecciosa por reblandecimiento de pezuñas en lodazales.")
+            else:
+                risk_score += 25
+                forecast_alerts.append("🟡 **Alerta Moderada:** Riesgo de parasitosis gastrointestinales y neumonías por cambios bruscos de temperatura ambiental.")
+        elif "Secas" in self.season:
+            if "Norte" in self.region_macro:
+                risk_score += 35
+                forecast_alerts.append("🟡 **Alerta por Estiaje:** Riesgo elevado de botulismo por deficiencia mineral y cuadros respiratorios por inhalación de polvo en corrales.")
+            else:
+                risk_score += 20
+                forecast_alerts.append("🟢 **Riesgo Estacional Bajo-Controlado:** Mantener vigilancia en agua de bebida y calidad de forrajes conservados.")
+
+        if system_affected == "Digestivo / Metabólico" and ("Bajío" in self.region_macro or "Norte" in self.region_macro):
+            risk_score += 18
+            forecast_alerts.append("📊 **Tendencia Zootécnica:** Incremento estacional de SARA debido a dietas altas en grano por escasez de forraje verde.")
+
+        risk_score = min(98, max(15, risk_score))
+        nivel_riesgo = "CRÍTICO" if risk_score > 75 else ("MODERADO" if risk_score > 45 else "BAJO")
+        
+        return {
+            "score": risk_score,
+            "nivel": nivel_riesgo,
+            "alerts": forecast_alerts
+        }
+
+
+# ==========================================
+# PANEL LATERAL DE MÉXICO Y ZONIFICACIÓN
+# ==========================================
+st.sidebar.markdown("### 🧬🩺 Clinic-IA | Sanidad y Precisión")
+pending_syncs = get_pending_sync_stats()
+if pending_syncs > 0:
+    st.sidebar.warning(f"🟡 **Modo Offline Rural:** `{pending_syncs}` registros pendientes de sincronizar.")
+else:
+    st.sidebar.success("🟢 **Modo Sincronizado** (SENASICA Cloud Ready)")
+
+macro_region = st.sidebar.selectbox("🗺️ Macro-Región Ganadera", [
+    "Zona Norte (Árida y Semiárida)", 
+    "Zona Centro - Occidente / Bajío", 
+    "Zona Golfo y Trópico Húmedo", 
+    "Zona Sur - Sureste y Península"
+])
+
+estados_mexico = {
+    "Zona Norte (Árida y Semiárida)": ["Sonora", "Chihuahua", "Coahuila", "Nuevo León", "Durango", "Baja California", "Baja California Sur", "Tamaulipas", "San Luis Potosí", "Zacatecas"],
+    "Zona Centro - Occidente / Bajío": ["Jalisco", "Aguascalientes", "Guanajuato", "Michoacán", "Querétaro", "Hidalgo", "Estado de México", "Ciudad de México", "Tlaxcala", "Morelos"],
+    "Zona Golfo y Trópico Húmedo": ["Veracruz", "Tabasco", "Oaxaca", "Puebla"],
+    "Zona Sur - Sureste y Península": ["Chiapas", "Yucatán", "Quintana Roo", "Campeche", "Guerrero", "Colima", "Nayarit"]
+}
+
+estado_seleccionado = st.sidebar.selectbox("🏛️ Estado de la República", estados_mexico.get(macro_region, ["Jalisco"]))
+municipio_input = st.sidebar.text_input("📍 Municipio / Localidad", value="Tlaltenango de Sánchez Román")
+
+sb_season = st.sidebar.selectbox("🌦️ Estación Climática Actual", ["Secas / Estiaje prolongado", "Lluvias / Humedad alta / Huracanes", "Transición / Frentes fríos (Nortes)"])
+sb_species = st.sidebar.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"])
+
+if sb_species in ["Bovino", "Ovino", "Caprino"]:
+    sb_breed = st.sidebar.selectbox("Raza / Biotipo", ["Holstein", "Beefmaster", "Angus", "Cebú / Brahman", "Suizo Pardo", "Pelibuey / Boer", "Cruzado"])
+    sb_prod_type = "Leche" if st.sidebar.selectbox("Propósito", ["Leche", "Carne", "Doble Propósito"]) == "Leche" else "Carne"
+else:
+    sb_breed = st.sidebar.text_input("Raza / Biotipo", value="Estándar / Mestizo")
+    sb_prod_type = "general"
+    
+sb_age_group = st.sidebar.selectbox("Grupo Etario", ["Neonato / Cría", "Juvenil / Levante", "Adulto en Producción / Mantenimiento", "Geriátrico / Reproductor"])
+sb_sex = st.sidebar.selectbox("Sexo", ["Hembra", "Macho", "Macho Castrado"])
+
+sb_evolution = st.sidebar.selectbox("Tiempo de Evolución", ["Hiperagudo (< 12 hrs)", "Agudo (12 - 48 hrs)", "Subagudo (3 - 7 días)", "Crónico (> 7 días)"])
+sb_morbidity = st.sidebar.selectbox("Incidencia en el Hato / Lote", ["Caso esporádico (1 animal)", "Brote focal (2 a 5 animales)", "Brote masivo (> 10%)"])
+sb_system = st.sidebar.selectbox("Sistema Principal Afectado", ["Digestivo / Metabólico", "Respiratorio", "Locomotor / Podal", "Reproductivo / Urogenital", "Nervioso / Infeccioso sistémico"])
+
+sb_system_prod = st.sidebar.selectbox("Sistema de Alojamiento", ["Estabulación total / Confinamiento", "Pastoreo rotacional intensivo", "Sistema extensivo / Agostadero"])
+sb_diet_change = st.sidebar.selectbox("Factor de Riesgo / Sanitario", ["Sin cambios recientes", "Cambio abrupto de dieta / Forraje", "Ingreso de animales sin cuarentena (SINIIGA)", "Exposición a vectores / garrapatas / murciélagos"])
+
+current_patient_id = st.sidebar.text_input("🆔 Arete SINIIGA / ID / Nombre", value="MX-849201")
+
+st.sidebar.markdown("""
+<div style='text-align: center; color: #64748b; font-size: 0.85rem; padding: 10px;'>
+Plataforma Nacional Clinic-IA México<br><b>Dr. Vet. Alejandro Castañeda Correa</b>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# ENCABEZADO VANGUARDISTA CON LOGOTIPO TECNOLÓGICO-VETERINARIO
+# ==========================================
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-logo">🧬🩺</div>
+    <div>
+        <h1 class="hero-title">Clinic-IA México</h1>
+        <p class="hero-subtitle">Sistema experto de diagnóstico veterinario, zonificación sanitaria SENASICA y pronóstico epidemiológico predictivo.</p>
+        <p class="hero-author">Autor: Dr. Vet. Alejandro Castañeda Correa | Cobertura Nacional</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# PESTAÑAS PRINCIPALES (8 SECCIONES)
+# ==========================================
+tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_tele = st.tabs([
+    "🩺 Diagnóstico e IA Nutricional", 
+    "🗺️ Zonificación SENASICA y Pronóstico",
+    "📁 Historial por Rancho", 
+    "💊 Vademecum, Retiros y Costo-Beneficio", 
+    "⚖️ Estimación de Peso",
+    "🔊 Fonofonía y Espectrogramas (FFT)",
+    "📡 IoT y Telemetría de Hato",
+    "📅 Videollamada / Urgencias"
+])
+
+# --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO Y SIFONEO NUTRICIONAL ---
+with tab_diag:
+    st.subheader(f"Evaluación Clínica de Precisión: Arete SINIIGA `[{current_patient_id}]`")
+    st.info(f"Ubicación activa: **{estado_seleccionado}, {municipio_input} ({macro_region})** | Estación: **{sb_season}**")
+    
+    col_d1, col_d2, col_d3 = st.columns(3)
+    with col_d1:
+        temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.5, step=0.1)
+    with col_d2:
+        hr = st.number_input("Frecuencia Cardíaca (lpm)", min_value=10, max_value=220, value=70, step=1)
+    with col_d3:
+        rr = st.number_input("Frecuencia Respiratoria (rpm)", min_value=5, max_value=120, value=20, step=1)
+
+    st.markdown("---")
+    st.markdown("#### Hallazgos Clínicos y Factores de Riesgo")
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        sign_1 = st.checkbox("Hipomotilidad / Atonía orgánica")
+        sign_2 = st.checkbox("Deshidratación moderada/severa (>6%)")
+    with col_s2:
+        sign_3 = st.checkbox("Signos de dolor abdominal / cólico / incomodidad")
+        sign_4 = st.checkbox("Secreción óculo-nasal o descarga hemorrágica / disfonia")
+
+    if st.button("Ejecutar Diagnóstico y Modelo Predictivo Nacional", type="primary"):
+        engine = MexicanZoningAndForecastEngine(macro_region, estado_seleccionado, sb_season, sb_species, sb_prod_type)
+        vitals_eval = engine.get_regional_sanitary_profile()
+        
+        differentials = [
+            {"dx": "Acidosis Ruminal Subaguda (SARA) / Trastorno Metabólico", "prob": 92 if "Digestivo" in sb_system else 65},
+            {"dx": "Complejo Infeccioso Endémico Regional (SENASICA Foco Rojo)", "prob": 84},
+            {"dx": "Proceso inflamatorio sistémico secundario por estrés ambiental", "prob": 72}
+        ]
+        
+        nutri_advice = (
+            "🌾 **Sifoneo Nutricional Adaptado a México:**\n"
+            f"- Ajustar niveles de proteína y FDN acorde a la disponibilidad de forrajes en `{estado_seleccionado}` durante la temporada de `{sb_season}`.\n"
+            "- Suplementación mineral con bloques multinutricionales para prevenir caídas metabólicas."
+        )
+        
+        forecast_data = engine.compute_disease_forecast(sb_system)
+
+        st.session_state['diagnostic_report'] = {
+            "differentials": differentials,
+            "patient": current_patient_id,
+            "region": f"{estado_seleccionado}, {macro_region}",
+            "season": sb_season,
+            "nutritional": nutri_advice,
+            "forecast": forecast_data
+        }
+
+    st.divider()
+    st.subheader("📊 Reporte Diagnóstico y Matriz de Riesgo Nacional")
+    if st.session_state['diagnostic_report']:
+        report = st.session_state['diagnostic_report']
+        st.markdown(f"**Paciente Arete:** `{report['patient']}` | 📍 **Región:** `{report['region']}`")
+        
+        st.markdown("### 1. Diagnósticos Diferenciales Ponderados")
+        for idx, item in enumerate(report['differentials'], 1):
+            confidence = item['prob']
+            st.markdown(f"**{idx}. {item['dx']}** — Probabilidad Coincidencia: **{confidence}%**")
+            st.progress(confidence / 100.0)
+            
+        st.markdown("### 2. Pronóstico Epidemiológico Predictivo para el Hato")
+        fc = report['forecast']
+        st.warning(f"⚠️ **Índice de Riesgo de Brote en Zona:** `{fc['score']}%` (Nivel de Alerta: **{fc['nivel']}**)")
+        for alert in fc['alerts']:
+            st.write(alert)
+
+        st.markdown("### 3. Sifoneo Nutricional")
+        st.info(report['nutritional'])
+    else:
+        st.info("💡 Ingrese los datos clínicos y presione el botón para ejecutar el diagnóstico experto adaptado a México.")
+
+
+# --- PESTAÑA 2: ZONIFICACIÓN SENASICA Y PRONÓSTICO ---
+with tab_zone:
+    st.subheader("🗺️ Zonificación Sanitaria SENASICA y Pronóstico de Enfermedades en México")
+    st.markdown("Consulte las restricciones oficiales de movilización, las enfermedades de notificación obligatoria y el pronóstico de brotes para su estado.")
+
+    engine_zone = MexicanZoningAndForecastEngine(macro_region, estado_seleccionado, sb_season, sb_species, sb_prod_type)
+    sanitary_profile = engine_zone.get_regional_sanitary_profile()
+    forecast_current = engine_zone.compute_disease_forecast(sb_system)
+
+    col_z1, col_z2 = st.columns(2)
+    with col_z1:
+        st.markdown(f"### 📍 Perfil Sanitario: `{estado_seleccionado}`")
+        
+        sanitary_info_text = (
+            f"**Macro-Región:** {macro_region}\n\n"
+            "**Restricciones y Campañas SENASICA / SADER:**\n"
+            f"{sanitary_profile['restricciones_senasica']}"
+        )
+        st.info(sanitary_info_text)
+        
+        st.markdown("#### 🔴 Focos Rojos Epidemiológicos en la Zona")
+        for fr in sanitary_profile['focos_rojos']:
+            st.markdown(f"- ⚠️ {fr}")
+            
+    with col_z2:
+        st.markdown("### 🔮 Pronóstico y Alerta Epidemiológica Predictiva")
+        st.metric(label="Índice de Riesgo Predictivo de Brote", value=f"{forecast_current['score']}%", delta=forecast_current['nivel'], delta_color="inverse")
+        st.markdown(f"**Estacionalidad analizada:** `{sb_season}`")
+        
+        st.markdown("#### 📋 Recomendaciones de Manejo Preventivo:")
+        st.success(sanitary_profile['manejo_recomendado'])
+        for fa in forecast_current['alerts']:
+            st.write(fa)
+
+
+# --- PESTAÑA 3: HISTORIAL POR RANCHO (SQLITE) ---
+with tab_reg:
+    st.subheader("📁 Archivo Local de Pacientes y Sincronización Rural (Lazy Sync)")
+    st.markdown("Gestión offline-first de expedientes con control de estado y transmisión asíncrona hacia la nube.")
+    
+    col_sync1, col_sync2 = st.columns([3, 1])
+    with col_sync1:
+        pending_count = get_pending_sync_stats()
+        st.info(f"📊 Estado de Cola Local: **{pending_count} registros pendientes** de sincronizar con el servidor central.")
+    with col_sync2:
+        if st.button("🔄 Sincronizar con la Nube", type="secondary"):
+            sync_local_to_cloud_mock()
+            st.success("¡Sincronización completada con éxito!")
+            st.rerun()
+
+    st.divider()
+    
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        input_rancho = st.text_input("🏡 Nombre del Rancho / Predio", value="Rancho San José de los Tlaxcalas")
+        input_municipio = st.text_input("📍 Municipio / Localidad", value=municipio_input)
+    with col_r2:
+        input_arete = st.text_input("🆔 Arete SINIIGA / ID del Animal", value=current_patient_id)
+        reg_species = st.selectbox("Especie en Registro", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"], index=0 if sb_species=="Bovino" else 0)
+        
+    col_r3, col_r4 = st.columns(2)
+    with col_r3:
+        estimated_weight = st.number_input("Peso Actual (kg)", min_value=0.5, max_value=1500.0, value=float(st.session_state['last_estimated_weight']), step=0.5)
+    with col_r4:
+        clinical_notes = st.text_area("Hallazgos de Exploración y Plan Terapéutico")
+        
+    if st.button("Guardar Evento en Base de Datos Local SQLite", type="primary"):
+        if input_arete and input_rancho:
+            record = {
+                "Rancho / Predio": input_rancho.strip().title(),
+                "Municipio": input_municipio.strip().title(),
+                "Estado": estado_seleccionado,
+                "ID Paciente": input_arete.strip().upper(),
+                "Fecha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "Especie": reg_species,
+                "Raza": sb_breed,
+                "Sexo": sb_sex,
+                "Sistema Afectado": sb_system,
+                "Peso (kg)": estimated_weight,
+                "Notas Clínicas": clinical_notes
+            }
+            save_record_sqlite(record)
+            st.success(f"¡Expediente guardado en SQLite local (Estado: `pending`) para el predio **{input_rancho.upper()}** ({estado_seleccionado})!")
+            st.rerun()
+        else:
+            st.warning("Por favor completa el nombre del rancho y el arete SINIIGA del paciente.")
+
+    st.markdown("---")
+    st.subheader("🔍 Consulta de Expedientes Almacenados Localmente")
+    
+    df_all = load_records_sqlite()
+    if not df_all.empty:
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            selected_rancho = st.selectbox("Filtrar por Rancho / Predio", df_all["rancho"].unique().tolist())
+        with col_f2:
+            df_filtered_rancho = df_all[df_all["rancho"] == selected_rancho]
+            selected_id_rancho = st.selectbox("Seleccionar Animal en este Rancho", df_filtered_rancho["patient_id"].unique().tolist())
+            
+        df_final_view = df_filtered_rancho[df_filtered_rancho["patient_id"] == selected_id_rancho]
+        st.markdown(f"### Historial Local de **{selected_id_rancho}** (Predio: *{selected_rancho}*)")
+        st.dataframe(df_final_view, use_container_width=True)
+    else:
+        st.info("Aún no hay registros guardados en la base de datos local SQLite.")
+
+
+# --- PESTAÑA 4: VADEMECUM Y COSTO-BENEFICIO ---
+with tab_drugs:
+    st.subheader("💊 Vademecum, Periodos de Retiro y Análisis Económico de Tratamiento")
+    st.markdown("Optimice la decisión clínica evaluando el costo del fármaco frente al valor productivo y riesgo de merma en el hato.")
+    
+    drug_database = {
+        "Oxitetraciclina L.A. (20%) [Antibiótico de amplio espectro]": {
+            "dosis": 20.0, "unidad": "mg/kg", "concentracion": 200, "especies": "Bovinos, Ovinos, Porcinos", "via": "IM profunda / SC", "indicacion": "Infecciones respiratorias y sistémicas graves.",
+            "retiro_leche": 5, "retiro_carne": 28, "costo_ml": 4.50
+        },
+        "Ceftiofur Clorhidrato [Cefalosporina 3ra Gen]": {
+            "dosis": 2.2, "unidad": "mg/kg", "concentracion": 50, "especies": "Bovinos, Equinos, Caninos, Felinos", "via": "IM / SC", "indicacion": "Enfermedad respiratoria y pododermatitis.",
+            "retiro_leche": 0, "retiro_carne": 4, "costo_ml": 18.20
+        },
+        "Enrofloxacina (10%) [Fluoroquinolona]": {
+            "dosis": 5.0, "unidad": "mg/kg", "concentracion": 100, "especies": "Bovinos, Porcinos, Caninos, Felinos", "via": "SC / IM / IV lenta", "indicacion": "Infecciones urogenitales y digestivas complejas.",
+            "retiro_leche": 4, "retiro_carne": 14, "costo_ml": 6.80
+        },
+        "Meloxicam (2%) [Antiinflamatorio no esteroideo]": {
+            "dosis": 0.5, "unidad": "mg/kg", "concentracion": 20, "especies": "Bovinos, Equinos, Porcinos, Ovinos", "via": "IV / SC", "indicacion": "Control de dolor, inflamación y pirexia.",
+            "retiro_leche": 5, "retiro_carne": 21, "costo_ml": 9.00
+        },
+        "Flunixin Meglumine [Analgésico / Antitérmico]": {
+            "dosis": 1.1, "unidad": "mg/kg", "concentracion": 50, "especies": "Bovinos, Equinos, Caninos", "via": "IV lenta / IM", "indicacion": "Cólico equino, dolor visceral y endotoxemia.",
+            "retiro_leche": 2, "retiro_carne": 7, "costo_ml": 12.50
+        }
+    }
+    
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        selected_drug = st.selectbox("Seleccione el Fármaco del Catálogo", list(drug_database.keys()))
+        drug_info = drug_database[selected_drug]
+        st.info(
+            f"📋 **Especies objetivo:** {drug_info['especies']}\n\n"
+            f"💉 **Vía de administración:** {drug_info['via']}\n\n"
+            f"📌 **Indicación:** {drug_info['indicacion']}\n\n"
+            f"⚖️ **Dosis estándar:** {drug_info['dosis']} {drug_info['unidad']}\n\n"
+            f"⏳ **Periodos de Retiro:** Leche: **{drug_info['retiro_leche']} días** | Carne: **{drug_info['retiro_carne']} días**"
+        )
+    
+    with col_d2:
+        use_ai_weight = st.checkbox(f"Usar peso actual registrado en memoria ({st.session_state['last_estimated_weight']} kg)", value=True)
+        
+        if use_ai_weight:
+            animal_weight = st.session_state['last_estimated_weight']
+        else:
+            animal_weight = st.number_input(
+                "Ingrese peso manual (kg)",
+                min_value=0.5,
+                max_value=1500.0,
+                value=25.0,
+                step=0.5
+            )
+        
+        st.markdown("---")
+        st.markdown("#### 💲 Variables de Análisis Económico (MXN)")
+        milk_price = st.number_input("Precio de venta leche ($/litro)", value=9.50, step=0.5)
+        daily_milk_yield = st.number_input("Producción diaria esperada (litros/día)", value=28.0, step=1.0)
+        milk_drop_pct = st.slider("Merma estimada por enfermedad (%)", min_value=10, max_value=90, value=40)
+        illness_days = st.number_input("Días estimados de recuperación", min_value=1, max_value=30, value=5)
+        
+        if st.button("Calcular Tratamiento y Análisis Costo-Beneficio", type="primary"):
+            total_mg = animal_weight * drug_info['dosis']
+            total_ml = total_mg / drug_info['concentracion']
+            drug_total_cost = total_ml * drug_info['costo_ml']
+            
+            liters_lost_per_day = daily_milk_yield * (milk_drop_pct / 100.0)
+            total_milk_loss_value = liters_lost_per_day * illness_days * milk_price
+            total_economic_impact = drug_total_cost + total_milk_loss_value
+            
+            now = datetime.datetime.now()
+            safe_milk_date = now + datetime.timedelta(days=drug_info['retiro_leche'])
+            safe_meat_date = now + datetime.timedelta(days=drug_info['retiro_carne'])
+            
+            st.session_state['last_drug_result'] = {
+                "drug": selected_drug,
+                "weight": animal_weight,
+                "ml": round(total_ml, 3),
+                "drug_cost": round(drug_total_cost, 2),
+                "milk_loss_val": round(total_milk_loss_value, 2),
+                "total_impact": round(total_economic_impact, 2),
+                "milk_days": drug_info['retiro_leche'],
+                "meat_days": drug_info['retiro_carne'],
+                "milk_date": safe_milk_date.strftime("%Y-%m-%d"),
+                "meat_date": safe_meat_date.strftime("%Y-%m-%d"),
+                "via": drug_info['via'],
+                "indicacion": drug_info['indicacion']
+            }
+            
+    st.divider()
+    st.subheader("🎯 Resultado Financiero y Emisión de Receta Oficial PDF")
+    if st.session_state['last_drug_result']:
+        res = st.session_state['last_drug_result']
+        st.success(
+            f"* **Fármaco:** {res['drug']}\n"
+            f"* **Dosis Total Requerida:** **
