@@ -261,4 +261,158 @@ class MexicanZoningAndForecastEngine:
                 "manejo_recomendado": "Monitoreo constante de FDN efectiva en raciones TMR y vacunación anual contra clostridiosis y leptospirosis."
             },
             "Zona Golfo y Trópico Húmedo": {
-                "focos_rojos": ["Hemoparasitosis (Anaplasmosis y Babesiosis)", "
+                "focos_rojos": ["Hemoparasitosis", "Carbón Sintomático", "Estomatitis Vesicular", "Fiebre Porcina Clásica"],
+                "restricciones_senasica": "Control estricto del vector (Garrapata Rhipicephalus microplus), baños garrapaticidas calendarizados y restricciones de movilización.",
+                "manejo_recomendado": "Manejo rotacional de potreros para disminuir carga parasitaria y programas de inmunización contra clostridios."
+            },
+            "Zona Sur - Sureste y Península": {
+                "focos_rojos": ["Tuberculosis bovina en zonas tropicales", "Gusano Barrenador del Ganado", "Complejo Respiratorio", "Parasitosis gastrointestinal severa"],
+                "restricciones_senasica": "Vigilancia epidemiológica activa para prevención de entrada de plagas transfronterizas y certificación de hatos libres.",
+                "manejo_recomendado": "Desparasitación estratégica basada en contención coproparasitoscópica y suplementación mineral con alta biodisponibilidad."
+            }
+        }
+        return profiles.get(self.region_macro, profiles["Zona Centro - Occidente / Bajío"])
+
+    def compute_disease_forecast(self, system_affected):
+        risk_score = 45
+        forecast_alerts = []
+
+        if "Lluvias" in self.season:
+            if "Golfo" in self.region_macro or "Sur" in self.region_macro:
+                risk_score += 42
+                forecast_alerts.append("🔴 **Alerta Roja por Vectores:** Alta probabilidad de brotes de Anaplasmosis y Babesiosis por proliferación de garrapata en temporada de humedad.")
+                forecast_alerts.append("⚠️ **Alerta Sanitaria:** Incremento en incidencia de pododermatitis infecciosa por reblandecimiento de pezuñas en lodazales.")
+            else:
+                risk_score += 25
+                forecast_alerts.append("🟡 **Alerta Moderada:** Riesgo de parasitosis gastrointestinales y neumonías por cambios bruscos de temperatura ambiental.")
+        elif "Secas" in self.season:
+            if "Norte" in self.region_macro:
+                risk_score += 35
+                forecast_alerts.append("🟡 **Alerta por Estiaje:** Riesgo elevado de botulismo por deficiencia mineral y cuadros respiratorios por inhalación de polvo en corrales.")
+            else:
+                risk_score += 20
+                forecast_alerts.append("🟢 **Riesgo Estacional Bajo-Controlado:** Mantener vigilancia en agua de bebida y calidad de forrajes conservados.")
+
+        if system_affected == "Digestivo / Metabólico" and ("Bajío" in self.region_macro or "Norte" in self.region_macro):
+            risk_score += 18
+            forecast_alerts.append("📊 **Tendencia Zootécnica:** Incremento estacional de SARA debido a dietas altas en grano por escasez de forraje verde.")
+
+        risk_score = min(98, max(15, risk_score))
+        nivel_riesgo = "CRÍTICO" if risk_score > 75 else ("MODERADO" if risk_score > 45 else "BAJO")
+        
+        return {
+            "score": risk_score,
+            "nivel": nivel_riesgo,
+            "alerts": forecast_alerts
+        }
+
+
+# ==========================================
+# PANEL LATERAL DE MÉXICO Y ZONIFICACIÓN
+# ==========================================
+st.sidebar.markdown("### 🧬🩺 Clinic-IA | Sanidad y Precisión")
+pending_syncs = get_pending_sync_stats()
+if pending_syncs > 0:
+    st.sidebar.warning(f"🟡 **Modo Offline Rural:** `{pending_syncs}` registros pendientes de sincronizar.")
+else:
+    st.sidebar.success("🟢 **Modo Sincronizado** (SENASICA Cloud Ready)")
+
+macro_region = st.sidebar.selectbox("🗺️ Macro-Región Ganadera", [
+    "Zona Norte (Árida y Semiárida)", 
+    "Zona Centro - Occidente / Bajío", 
+    "Zona Golfo y Trópico Húmedo", 
+    "Zona Sur - Sureste y Península"
+])
+
+estados_mexico = {
+    "Zona Norte (Árida y Semiárida)": ["Sonora", "Chihuahua", "Coahuila", "Nuevo León", "Durango", "Baja California", "Baja California Sur", "Tamaulipas", "San Luis Potosí", "Zacatecas"],
+    "Zona Centro - Occidente / Bajío": ["Jalisco", "Aguascalientes", "Guanajuato", "Michoacán", "Querétaro", "Hidalgo", "Estado de México", "Ciudad de México", "Tlaxcala", "Morelos"],
+    "Zona Golfo y Trópico Húmedo": ["Veracruz", "Tabasco", "Oaxaca", "Puebla"],
+    "Zona Sur - Sureste y Península": ["Chiapas", "Yucatán", "Quintana Roo", "Campeche", "Guerrero", "Colima", "Nayarit"]
+}
+
+estado_seleccionado = st.sidebar.selectbox("🏛️ Estado de la República", estados_mexico.get(macro_region, ["Jalisco"]))
+municipio_input = st.sidebar.text_input("📍 Municipio / Localidad", value="Tlaltenango de Sánchez Román")
+
+sb_season = st.sidebar.selectbox("🌦️ Estación Climática Actual", ["Secas / Estiaje prolongado", "Lluvias / Humedad alta / Huracanes", "Transición / Frentes fríos (Nortes)"])
+sb_species = st.sidebar.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"])
+
+if sb_species in ["Bovino", "Ovino", "Caprino"]:
+    sb_breed = st.sidebar.selectbox("Raza / Biotipo", ["Holstein", "Beefmaster", "Angus", "Cebú / Brahman", "Suizo Pardo", "Pelibuey / Boer", "Cruzado"])
+    sb_prod_type = "Leche" if st.sidebar.selectbox("Propósito", ["Leche", "Carne", "Doble Propósito"]) == "Leche" else "Carne"
+else:
+    sb_breed = st.sidebar.text_input("Raza / Biotipo", value="Estándar / Mestizo")
+    sb_prod_type = "general"
+    
+sb_age_group = st.sidebar.selectbox("Grupo Etario", ["Neonato / Cría", "Juvenil / Levante", "Adulto en Producción / Mantenimiento", "Geriátrico / Reproductor"])
+sb_sex = st.sidebar.selectbox("Sexo", ["Hembra", "Macho", "Macho Castrado"])
+
+sb_evolution = st.sidebar.selectbox("Tiempo de Evolución", ["Hiperagudo (< 12 hrs)", "Agudo (12 - 48 hrs)", "Subagudo (3 - 7 días)", "Crónico (> 7 días)"])
+sb_morbidity = st.sidebar.selectbox("Incidencia en el Hato / Lote", ["Caso esporádico (1 animal)", "Brote focal (2 a 5 animales)", "Brote masivo (> 10%)"])
+sb_system = st.sidebar.selectbox("Sistema Principal Afectado", ["Digestivo / Metabólico", "Respiratorio", "Locomotor / Podal", "Reproductivo / Urogenital", "Nervioso / Infeccioso sistémico"])
+
+sb_system_prod = st.sidebar.selectbox("Sistema de Alojamiento", ["Estabulación total / Confinamiento", "Pastoreo rotacional intensivo", "Sistema extensivo / Agostadero"])
+sb_diet_change = st.sidebar.selectbox("Factor de Riesgo / Sanitario", ["Sin cambios recientes", "Cambio abrupto de dieta / Forraje", "Ingreso de animales sin cuarentena (SINIIGA)", "Exposición a vectores / garrapatas / murciélagos"])
+
+current_patient_id = st.sidebar.text_input("🆔 Arete SINIIGA / ID / Nombre", value="MX-849201")
+
+st.sidebar.markdown("""
+<div style='text-align: center; color: #64748b; font-size: 0.85rem; padding: 10px;'>
+Plataforma Nacional Clinic-IA México<br><b>Dr. Vet. Alejandro Castañeda Correa</b>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# ENCABEZADO VANGUARDISTA CON LOGOTIPO TECNOLÓGICO-VETERINARIO
+# ==========================================
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-logo">🧬🩺</div>
+    <div>
+        <h1 class="hero-title">Clinic-IA México</h1>
+        <p class="hero-subtitle">Sistema experto de diagnóstico veterinario, zonificación sanitaria SENASICA y pronóstico epidemiológico predictivo.</p>
+        <p class="hero-author">Autor: Dr. Vet. Alejandro Castañeda Correa | Cobertura Nacional</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# PESTAÑAS PRINCIPALES (8 SECCIONES)
+# ==========================================
+tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_tele = st.tabs([
+    "🩺 Diagnóstico e IA Nutricional", 
+    "🗺️ Zonificación SENASICA y Pronóstico",
+    "📁 Historial por Rancho", 
+    "💊 Vademecum, Retiros y Costo-Beneficio", 
+    "⚖️ Estimación de Peso",
+    "🔊 Fonofonía y Espectrogramas (FFT)",
+    "📡 IoT y Telemetría de Hato",
+    "📅 Videollamada / Urgencias"
+])
+
+# --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO Y SIFONEO NUTRICIONAL ---
+with tab_diag:
+    st.subheader(f"Evaluación Clínica de Precisión: Arete SINIIGA `[{current_patient_id}]`")
+    st.info(f"Ubicación activa: **{estado_seleccionado}, {municipio_input} ({macro_region})** | Estación: **{sb_season}**")
+    
+    col_d1, col_d2, col_d3 = st.columns(3)
+    with col_d1:
+        temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.5, step=0.1)
+    with col_d2:
+        hr = st.number_input("Frecuencia Cardíaca (lpm)", min_value=10, max_value=220, value=70, step=1)
+    with col_d3:
+        rr = st.number_input("Frecuencia Respiratoria (rpm)", min_value=5, max_value=120, value=20, step=1)
+
+    st.markdown("---")
+    st.markdown("#### Hallazgos Clínicos y Factores de Riesgo")
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        sign_1 = st.checkbox("Hipomotilidad / Atonía orgánica")
+        sign_2 = st.checkbox("Deshidratación moderada/severa (>6%)")
+    with col_s2:
+        sign_3 = st.checkbox("Signos de dolor abdominal / cólico / incomodidad")
+        sign_4 = st.checkbox("Secreción óculo-nasal o descarga hemorrágica / disfonia")
+
+    if st.button("Ejecutar Diagnóstico y Modelo Predictivo Nacional", type="primary"):
+        engine = MexicanZoningAndForecastEngine(macro_region, estado_seleccionado, sb_season, sb_species, sb_prod_type)
+        v
