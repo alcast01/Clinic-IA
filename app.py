@@ -126,17 +126,18 @@ class ClinicPDF(FPDF):
     def header(self):
         self.set_font('helvetica', 'B', 15)
         self.set_text_color(15, 23, 42)
-        self.cell(0, 8, 'CLINIC-IA MÉXICO | RECETA Y REPORTE OFICIAL SENASICA', 0, 1, 'C')
+        self.cell(0, 8, 'CLINIC-IA MEXICO | RECETA Y REPORTE OFICIAL SENASICA', 0, 1, 'C')
         self.set_font('helvetica', 'I', 9)
         self.set_text_color(100, 116, 139)
-        self.cell(0, 5, 'Dr. Vet. Alejandro Castañeda Correa — Zootecnia y Sanidad Pecuaria Nacional', 0, 1, 'C')
+        # CORREGIDO: Se reemplazó el em-dash '—' por '-' para evitar errores de codificación Latin-1
+        self.cell(0, 5, 'Dr. Vet. Alejandro Castaneda Correa - Zootecnia y Sanidad Pecuaria Nacional', 0, 1, 'C')
         self.ln(3)
 
     def footer(self):
         self.set_y(-15)
         self.set_font('helvetica', 'I', 8)
         self.set_text_color(148, 163, 184)
-        self.cell(0, 10, f'Folio de Validación Oficial SINIIGA/SENASICA | Página {self.page_no()}', 0, 0, 'C')
+        self.cell(0, 10, f'Folio de Validacion Oficial SINIIGA/SENASICA | Pagina {self.page_no()}', 0, 0, 'C')
 
 def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, weight, diagnosis_text, nutritional_text, treatment_text, withdrawal_text, economic_text):
     pdf = ClinicPDF()
@@ -147,18 +148,18 @@ def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, w
     
     pdf.set_font('helvetica', 'B', 10)
     pdf.set_fill_color(241, 245, 249)
-    pdf.cell(0, 7, f" FOLIO ÚNICO NACIONAL: {folio}", 0, 1, 'L', True)
-    pdf.cell(0, 7, f" Fecha y Hora de Emisión: {timestamp} (MEX)", 0, 1, 'L', True)
+    pdf.cell(0, 7, f" FOLIO UNICO NACIONAL: {folio}", 0, 1, 'L', True)
+    pdf.cell(0, 7, f" Fecha y Hora de Emision: {timestamp} (MEX)", 0, 1, 'L', True)
     pdf.ln(3)
     
     pdf.set_font('helvetica', 'B', 11)
-    pdf.cell(0, 7, "1. Reseña, Arete SINIIGA y Localización", 0, 1)
+    pdf.cell(0, 7, "1. Resena, Arete SINIIGA y Localizacion", 0, 1)
     pdf.set_font('helvetica', '', 10)
     pdf.multi_cell(0, 5, f"Predio / Rancho: {rancho} | Municipio: {municipio}, {estado}\nArete SINIIGA / ID: {patient_id}\nEspecie: {species} | Raza: {breed} | Peso Vivo: {weight} kg")
     pdf.ln(2)
     
     pdf.set_font('helvetica', 'B', 11)
-    pdf.cell(0, 7, "2. Diagnóstico Clínico y Matriz Regional SENASICA", 0, 1)
+    pdf.cell(0, 7, "2. Diagnostico Clinico y Matriz Regional SENASICA", 0, 1)
     pdf.set_font('helvetica', '', 10)
     pdf.multi_cell(0, 5, diagnosis_text)
     pdf.ln(2)
@@ -179,10 +180,10 @@ def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, w
     pdf.cell(95, 5, "________________________________________", 0, 0, 'C')
     pdf.cell(95, 5, "[ SELLO DIGITAL OFICIAL SENASICA ]", 0, 1, 'C')
     pdf.set_font('helvetica', '', 8)
-    pdf.cell(95, 4, "Médico Veterinario Zootecnista Autorizado", 0, 0, 'C')
+    pdf.cell(95, 4, "Medico Veterinario Zootecnista Autorizado", 0, 0, 'C')
     pdf.cell(95, 4, f"Folio huella: {folio}-VERIFIED", 0, 1, 'C')
-    pdf.cell(95, 4, "Dr. Vet. Alejandro Castañeda Correa", 0, 0, 'C')
-    pdf.cell(95, 4, "Trazabilidad y Sanidad Pecuaria en México", 0, 1, 'C')
+    pdf.cell(95, 4, "Dr. Vet. Alejandro Castaneda Correa", 0, 0, 'C')
+    pdf.cell(95, 4, "Trazabilidad y Sanidad Pecuaria en Mexico", 0, 1, 'C')
     
     return pdf.output(dest='S').encode('latin1')
 
