@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import numpy as np
 import sqlite3
+import re
 from PIL import Image
 from fpdf import FPDF
 import librosa
@@ -122,6 +123,14 @@ def sync_local_to_cloud_mock():
 # ==========================================
 # GENERADOR DE PDF PROFESIONAL CON FOLIO
 # ==========================================
+def clean_for_pdf(text):
+    if not text:
+        return ""
+    # Remover asteriscos, backticks y símbolos de markdown
+    text = re.sub(r'[\*`_#]', '', str(text))
+    # Limpiar caracteres incompatibles con latin-1 ignorándolos
+    return text.encode('latin-1', 'ignore').decode('latin-1')
+
 class ClinicPDF(FPDF):
     def header(self):
         self.set_font('helvetica', 'B', 15)
@@ -129,7 +138,6 @@ class ClinicPDF(FPDF):
         self.cell(0, 8, 'CLINIC-IA MEXICO | RECETA Y REPORTE OFICIAL SENASICA', 0, 1, 'C')
         self.set_font('helvetica', 'I', 9)
         self.set_text_color(100, 116, 139)
-        # CORREGIDO: Se reemplazó el em-dash '—' por '-' para evitar errores de codificación Latin-1
         self.cell(0, 5, 'Dr. Vet. Alejandro Castaneda Correa - Zootecnia y Sanidad Pecuaria Nacional', 0, 1, 'C')
         self.ln(3)
 
@@ -155,25 +163,25 @@ def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, w
     pdf.set_font('helvetica', 'B', 11)
     pdf.cell(0, 7, "1. Resena, Arete SINIIGA y Localizacion", 0, 1)
     pdf.set_font('helvetica', '', 10)
-    pdf.multi_cell(0, 5, f"Predio / Rancho: {rancho} | Municipio: {municipio}, {estado}\nArete SINIIGA / ID: {patient_id}\nEspecie: {species} | Raza: {breed} | Peso Vivo: {weight} kg")
+    pdf.multi_cell(0, 5, clean_for_pdf(f"Predio / Rancho: {rancho} | Municipio: {municipio}, {estado}\nArete SINIIGA / ID: {patient_id}\nEspecie: {species} | Raza: {breed} | Peso Vivo: {weight} kg"))
     pdf.ln(2)
     
     pdf.set_font('helvetica', 'B', 11)
     pdf.cell(0, 7, "2. Diagnostico Clinico y Matriz Regional SENASICA", 0, 1)
     pdf.set_font('helvetica', '', 10)
-    pdf.multi_cell(0, 5, diagnosis_text)
+    pdf.multi_cell(0, 5, clean_for_pdf(diagnosis_text))
     pdf.ln(2)
     
     pdf.set_font('helvetica', 'B', 11)
     pdf.cell(0, 7, "3. Sifoneo Nutricional del Hato", 0, 1)
     pdf.set_font('helvetica', '', 10)
-    pdf.multi_cell(0, 5, nutritional_text)
+    pdf.multi_cell(0, 5, clean_for_pdf(nutritional_text))
     pdf.ln(2)
     
     pdf.set_font('helvetica', 'B', 11)
     pdf.cell(0, 7, "4. Tratamiento, Periodos de Retiro y Costo-Beneficio", 0, 1)
     pdf.set_font('helvetica', '', 10)
-    pdf.multi_cell(0, 5, f"{treatment_text}\n\n{withdrawal_text}\n\n{economic_text}")
+    pdf.multi_cell(0, 5, clean_for_pdf(f"{treatment_text}\n\n{withdrawal_text}\n\n{economic_text}"))
     pdf.ln(6)
     
     pdf.set_font('helvetica', 'B', 9)
@@ -606,255 +614,4 @@ with tab_drugs:
     
     with col_d2:
         use_ai_weight = st.checkbox(f"Usar peso actual registrado en memoria ({st.session_state['last_estimated_weight']} kg)", value=True)
-        animal_weight = st.session_state['last_estimated_weight'] if use_ai_weight else st.number_input("Ingrese peso manual (kg)", min_value=0.5, max_value=1500.0, value=25.0, step=0.5)
-        
-        st.markdown("---")
-        st.markdown("#### 💲 Variables de Análisis Económico (MXN)")
-        milk_price = st.number_input("Precio de venta leche ($/litro)", value=9.50, step=0.5)
-        daily_milk_yield = st.number_input("Producción diaria esperada (litros/día)", value=28.0, step=1.0)
-        milk_drop_pct = st.slider("Merma estimada por enfermedad (%)", min_value=10, max_value=90, value=40)
-        illness_days = st.number_input("Días estimados de recuperación", min_value=1, max_value=30, value=5)
-        
-        if st.button("Calcular Tratamiento y Análisis Costo-Beneficio", type="primary"):
-            total_mg = animal_weight * drug_info['dosis']
-            total_ml = total_mg / drug_info['concentracion']
-            drug_total_cost = total_ml * drug_info['costo_ml']
-            
-            liters_lost_per_day = daily_milk_yield * (milk_drop_pct / 100.0)
-            total_milk_loss_value = liters_lost_per_day * illness_days * milk_price
-            total_economic_impact = drug_total_cost + total_milk_loss_value
-            
-            now = datetime.datetime.now()
-            safe_milk_date = now + datetime.timedelta(days=drug_info['retiro_leche'])
-            safe_meat_date = now + datetime.timedelta(days=drug_info['retiro_carne'])
-            
-            st.session_state['last_drug_result'] = {
-                "drug": selected_drug,
-                "weight": animal_weight,
-                "ml": round(total_ml, 3),
-                "drug_cost": round(drug_total_cost, 2),
-                "milk_loss_val": round(total_milk_loss_value, 2),
-                "total_impact": round(total_economic_impact, 2),
-                "milk_days": drug_info['retiro_leche'],
-                "meat_days": drug_info['retiro_carne'],
-                "milk_date": safe_milk_date.strftime("%Y-%m-%d"),
-                "meat_date": safe_meat_date.strftime("%Y-%m-%d"),
-                "via": drug_info['via'],
-                "indicacion": drug_info['indicacion']
-            }
-            
-    st.divider()
-    st.subheader("🎯 Resultado Financiero y Emisión de Receta Oficial PDF")
-    if st.session_state['last_drug_result']:
-        res = st.session_state['last_drug_result']
-        st.success(
-            f"* **Fármaco:** {res['drug']}\n"
-            f"* **Dosis Total Requerida:** **{res['ml']} mL** (Costo insumo: **${res['drug_cost']} MXN**)\n"
-            f"* **Merma económica proyectada por baja en leche:** **${res['milk_loss_val']} MXN**\n"
-            f"* **Impacto Económico Total del Evento:** **${res['total_impact']} MXN**\n\n"
-            f"🥛 **Retiro Leche:** {res['milk_days']} días (Seguro desde `{res['milk_date']}`)\n"
-            f"🥩 **Retiro Carne:** {res['meat_days']} días (Seguro desde `{res['meat_date']}`)"
-        )
-        
-        nutri_text = st.session_state['diagnostic_report']['nutritional'] if st.session_state['diagnostic_report'] else "Sin sifoneo nutricional activo."
-        diag_text = f"Sistema afectado: {sb_system}. Diagnóstico presuntivo regional ({estado_seleccionado}, {macro_region})."
-        treat_text = f"Fármaco: {res['drug']}\nDosis: {res['ml']} mL ({res['drug_cost']} MXN)\nVía: {res['via']}"
-        with_text = f"Retiro Leche: {res['milk_days']} días | Retiro Carne: {res['meat_days']} días"
-        econ_text = f"Costo total tratamiento + merma: ${res['total_impact']} MXN"
-        
-        pdf_bytes = generate_pdf_report(
-            patient_id=current_patient_id,
-            rancho="Rancho San José de los Tlaxcalas",
-            municipio=municipio_input,
-            estado=estado_seleccionado,
-            species=sb_species,
-            breed=sb_breed,
-            weight=res['weight'],
-            diagnosis_text=diag_text,
-            nutritional_text=nutri_text,
-            treatment_text=treat_text,
-            withdrawal_text=with_text,
-            economic_text=econ_text
-        )
-        
-        st.download_button(
-            label="📄 Descargar Receta y Reporte Oficial SENASICA en PDF",
-            data=pdf_bytes,
-            file_name=f"Receta_SENASICA_{current_patient_id}_{datetime.date.today()}.pdf",
-            mime="application/pdf",
-            type="primary"
-        )
-    else:
-        st.info("💡 Configure el fármaco y los parámetros económicos para generar la evaluación y el PDF oficial.")
-
-
-# --- PESTAÑA 5: ESTIMACIÓN DE PESO ---
-with tab_weight:
-    st.subheader("⚖️ Herramientas de Estimación de Peso y Biometría")
-    st.markdown("Seleccione el método para calcular el peso vivo del paciente y actualizarlo automáticamente para la dosificación.")
-    
-    weight_mode = st.radio("Método de estimación:", ["📐 Ecuaciones Morfométricas (Cinta)", "📸 Inteligencia Artificial por Fotografía"])
-    
-    if weight_mode == "📐 Ecuaciones Morfométricas (Cinta)":
-        col_w1, col_w2 = st.columns(2)
-        with col_w1:
-            heart_girth = st.number_input("Perímetro Torácico (cm)", min_value=15.0, max_value=300.0, value=180.0, step=0.5)
-        with col_w2:
-            body_length = st.number_input("Longitud Corporal (cm)", min_value=15.0, max_value=300.0, value=150.0, step=0.5)
-            
-        if st.button("Calcular con Morfometría", type="primary"):
-            estimated_w = round((heart_girth ** 2 * body_length) / 10840, 2)
-            st.session_state['last_estimated_weight'] = estimated_w
-            st.success(f"⚖️ **Peso Calculado y Guardado en Memoria:** **{estimated_w} kg**")
-    else:
-        uploaded_image = st.file_uploader("Sube la fotografía lateral del animal", type=["jpg", "jpeg", "png"])
-        if uploaded_image:
-            st.image(Image.open(uploaded_image), caption=f"Arete SINIIGA: {current_patient_id}", use_container_width=True)
-            if st.button("🤖 Procesar Peso con IA", type="primary"):
-                ai_weight_result = 438.0
-                st.session_state['last_estimated_weight'] = ai_weight_result
-                st.success(f"¡Peso estimado por visión artificial: **{ai_weight_result} kg** (Guardado en memoria)!")
-
-    st.markdown("---")
-    st.metric(label="Peso Actual Registrado en Memoria de la App", value=f"{st.session_state['last_estimated_weight']} kg")
-
-
-# --- PESTAÑA 6: FONOFONÍA Y ESPECTROGRAMAS REALES ---
-with tab_audio:
-    st.subheader("🔊 Procesamiento Acústico y Generación de Espectrogramas (Librosa / FFT)")
-    st.markdown(f"Análisis espectral real de auscultación ruminal o respiratoria para el arete SINIIGA: **{current_patient_id}**")
-    
-    audio_upload = st.file_uploader("Sube archivo de audio de auscultación (WAV / MP3 / M4A)", type=["wav", "mp3", "m4a"])
-    
-    if audio_upload:
-        st.audio(audio_upload)
-        if st.button("🔬 Procesar Espectrograma Real (FFT)", type="primary"):
-            try:
-                y, sr = librosa.load(audio_upload, sr=None)
-                S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
-                S_dB = librosa.power_to_db(S, ref=np.max)
-                
-                fig, ax = plt.subplots(figsize=(10, 4))
-                img = librosa.display.specshow(S_dB, x_axis='time', y_axis='mel', sr=sr, fmax=8000, ax=ax, cmap='magma')
-                ax.set(title=f'Espectrograma Acústico - Arete {current_patient_id}')
-                fig.colorbar(img, ax=ax, format='%+2.0f dB')
-                
-                st.pyplot(fig)
-                
-                rms = librosa.feature.rms(y=y)[0]
-                mean_energy = np.mean(rms) * 1000
-                
-                st.success("¡Espectrograma generado y procesado exitosamente vía Transformada de Fourier (FFT)!")
-                
-                col_a1, col_a2 = st.columns(2)
-                with col_a1:
-                    st.metric(label="Energía RMS Promedio", value=f"{round(mean_energy, 2)} Units")
-                with col_a2:
-                    st.metric(label="Tasa de Muestreo", value=f"{sr} Hz")
-                    
-            except Exception as e:
-                st.error(f"Error procesando el archivo de audio: {e}")
-    else:
-        st.info("💡 Sube un archivo de audio para calcular y visualizar el espectrograma real de la motilidad ruminal o respiratoria.")
-
-
-# --- PESTAÑA 7: IOT Y TELEMETRÍA DE HATO ---
-with tab_iot:
-    st.subheader("📡 Módulo IoT: Alertas de Collares de Rumodetección y Podómetros")
-    st.markdown("Recepción automática de eventos telemétricos (baja de rumina, picos de actividad por celo o fiebre subclínica).")
-    
-    with st.expander("📥 Simular Webhook / Entrada de Dispositivo Inteligente (API Mock)"):
-        with st.form("iot_form"):
-            col_i1, col_i2 = st.columns(2)
-            with col_i1:
-                iot_device_id = st.text_input("ID Collar / Dispositivo IoT", value="COLLAR-MX-902")
-                iot_tag_type = st.selectbox("Tipo de Sensor", ["Collar Ruminal (Allflex/SensingCow)", "Podómetro Actividad (Pedometer Tag)", "Orejera Térmica IoT"])
-            with col_i2:
-                iot_alert_type = st.selectbox("Tipo de Alerta Temprana", ["⚠️ Alerta SARA / Baja Rumina (< 350 min/día)", "🔥 Alerta Fiebre / Temperatura Elevada", "💃 Alerta Celo Detectado (Pico Actividad)", "🔋 Batería Baja / Sin Señal"])
-                iot_status = st.selectbox("Estatus de Alerta", ["Activa / Pendiente de Revisión", "Atendida / En Tratamiento", "Descartada"])
-            
-            iot_desc = st.text_area("Descripción telemétrica", value="El sensor detectó una caída sostenida del tiempo de rumina durante las últimas 18 horas en el predio.")
-            
-            submit_iot = st.form_submit_button("🛰️ Registrar Alerta IoT en Base de Datos", type="primary")
-            if submit_iot:
-                new_alert = {
-                    "device_id": iot_device_id,
-                    "tag_type": iot_tag_type,
-                    "alert_type": iot_alert_type,
-                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "description": iot_desc,
-                    "status": iot_status
-                }
-                save_iot_alert_sqlite(new_alert)
-                st.success("¡Alerta IoT recibida y almacenada localmente en la cola de sincronización!")
-
-    st.markdown("---")
-    st.subheader("🚨 Historial de Alertas Telemétricas Activas en el Hato")
-    df_iot = load_iot_alerts_sqlite()
-    if not df_iot.empty:
-        for idx, row in df_iot.iterrows():
-            sync_tag = "🟢 Sincronizado" if row['sync_status'] == 'synced' else "🟡 Pendiente"
-            st.markdown(f"""
-            <div class="card">
-                <h4>{row['alert_type']} — <code>{row['device_id']}</code> ({sync_tag})</h4>
-                <p><b>Sensor:</b> {row['tag_type']} | <b>Fecha/Hora:</b> {row['timestamp']}</p>
-                <p><b>Descripción:</b> {row['description']}</p>
-                <p><b>Estatus:</b> <code>{row['status']}</code></p>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No hay alertas telemétricas pendientes registradas en este momento.")
-
-
-# --- PESTAÑA 8: VIDEOLLAMADA / URGENCIAS A DISTANCIA ---
-with tab_tele:
-    st.subheader("📅 Telemedicina Veterinaria: Agendar Videollamada de Urgencia / Distancia")
-    st.markdown("Conexión directa en tiempo real con el **Dr. Vet. Alejandro Castañeda Correa** para casos críticos o asesoría técnica en campo en todo México.")
-    
-    with st.form("tele_form"):
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            tele_client = st.text_input("Nombre del Propietario / Productor", value="Alejandro Castañeda")
-            tele_rancho = st.text_input("Rancho / Predio / Ubicación", value=f"{estado_seleccionado}, {municipio_input}")
-            tele_species = st.selectbox("Especie Involucrada", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"])
-        with col_t2:
-            tele_urgency = st.selectbox("Nivel de Urgencia", ["🔴 EMERGENCIA 24/7 (Atención Inmediata)", "🟠 Consulta Prioritaria (Hoy)", "🟡 Videollamada Programada (Próximos días)"])
-            tele_date = st.date_input("Fecha Preferida de Consulta")
-            tele_time = st.time_input("Hora Estimada")
-            
-        tele_motive = st.text_area("Descripción breve del caso clínico o emergencia", placeholder="Ej. Vaca caída con signos de hipocalcemia postparto / Cólico equino agudo...")
-        
-        submit_tele = st.form_submit_button("🚀 Agendar / Iniciar Videollamada de Urgencia", type="primary")
-        
-        if submit_tele:
-            meeting_id = f"MX-CLINIC-{np.random.randint(1000, 9999)}"
-            appointment = {
-                "ID Cita": meeting_id,
-                "Propietario": tele_client,
-                "Rancho": tele_rancho,
-                "Especie": tele_species,
-                "Urgencia": tele_urgency,
-                "Fecha/Hora": f"{tele_date} {tele_time}",
-                "Motivo": tele_motive,
-                "Enlace": f"https://meet.jit.si/{meeting_id}"
-            }
-            save_appointment_sqlite(appointment)
-            st.success("¡Cita de telemedicina registrada exitosamente en SQLite local (Pendiente de sync)!")
-
-    st.divider()
-    st.subheader("📌 Consultas y Urgencias Agendadas (SQLite)")
-    df_app = load_appointments_sqlite()
-    if not df_app.empty:
-        for idx, row in df_app.iterrows():
-            sync_tag = "🟢 Sincronizado" if row['sync_status'] == 'synced' else "🟡 Pendiente"
-            with st.container():
-                st.markdown(f"""
-                <div class="card">
-                    <h4>🚨 {row['urgency']} — Predio: {row['rancho']} ({sync_tag})</h4>
-                    <p><b>Propietario:</b> {row['owner']} | <b>Especie:</b> {row['species']} | <b>Fecha:</b> {row['datetime']}</p>
-                    <p><b>Motivo:</b> {row['motive']}</p>
-                    <p>🔗 <b>Enlace de Videollamada Segura:</b> <a href="{row['link']}" target="_blank">{row['link']}</a></p>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.info("No hay videollamadas de emergencia o distancia agendadas en la base de datos local.")
+        animal_weight = st.session_state['last_estimated_weight'] if use_ai_weight else st.number_input("Ingrese peso manual (kg)", min_value=0.5, max_value=
