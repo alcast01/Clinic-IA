@@ -358,7 +358,7 @@ current_patient_id = st.sidebar.text_input("🆔 Arete SINIIGA / ID / Nombre", v
 
 st.sidebar.markdown("""
 <div style='text-align: center; color: #64748b; font-size: 0.85rem; padding: 10px;'>
-Plataforma Nacional Clinic-IA México<br><b>Dr. Vet. Alejandro Castañeda Correa</b>
+Plataforma Nacional Clinic-IA México
 </div>
 """, unsafe_allow_html=True)
 
