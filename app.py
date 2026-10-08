@@ -371,7 +371,7 @@ st.markdown("""
     <div>
         <h1 class="hero-title">Clinic-IA México</h1>
         <p class="hero-subtitle">Sistema experto de diagnóstico veterinario, zonificación sanitaria SENASICA y pronóstico epidemiológico predictivo.</p>
-        <p class="hero-author">Autor: Dr. Vet. Alejandro Castañeda Correa | Cobertura Nacional</p>
+        <p class="hero-author">Desarrollada y Creada por: Dr. Alejandro Castañeda Correa</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
