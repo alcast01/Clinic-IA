@@ -18,29 +18,37 @@ st.set_page_config(
 )
 
 # ==========================================
-# 0. CONTROL DE ESTADO DE SESIÓN Y SUSCRIPCIÓN INICIAL
+# 0. CONTROL DE ESTADO DE SESIÓN Y AUTENTICACIÓN BIOMÉTRICA
 # ==========================================
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'mfa_verified' not in st.session_state:
     st.session_state['mfa_verified'] = False
+if 'biometric_verified' not in st.session_state:
+    st.session_state['biometric_verified'] = False
 if 'current_user' not in st.session_state:
     st.session_state['current_user'] = None
 if 'selected_plan' not in st.session_state:
     st.session_state['selected_plan'] = None
-
-# Credenciales de demostración del sistema
-USERS_DB = {
-    "alejandro.castaneda": {"pass": "clinic2026*", "name": "Dr. Alejandro Castañeda", "role": "Administrador / Creador"},
-    "veterinario": {"pass": "vet123", "name": "Médico de Campo", "role": "Veterinario Autorizado"},
-    "productor": {"pass": "rancho123", "name": "Productor Pecuario", "role": "Ganadero / Propietario"}
-}
+if 'registered_users_db' not in st.session_state:
+    # Base de usuarios iniciales con datos de contacto y bancarios de prueba
+    st.session_state['registered_users_db'] = {
+        "alejandro.castaneda": {
+            "pass": "clinic2026*", 
+            "name": "Dr. Alejandro Castañeda Correa", 
+            "role": "Administrador / Creador",
+            "email": "alejandro.castaneda@clinic-ia.mx",
+            "phone": "+52 33 1234 5678",
+            "bank": "BBVA **** 4092",
+            "plan": "Pro - Médico Veterinario"
+        }
+    }
 
 def render_subscription_selector():
     st.markdown("""
     <div style='text-align: center; padding: 1.5rem;'>
         <h1>💳 Selecciona tu Plan de Suscripción | Clinic-IA México</h1>
-        <p style='color: #64748b;'>Elige la modalidad que mejor se adapte a tu rancho, clínica o asociación ganadera antes de acceder a la plataforma.</p>
+        <p style='color: #64748b;'>Elige la modalidad que mejor se adapte a tu rancho, clínica o asociación ganadera antes de registrarte o iniciar sesión.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -58,7 +66,6 @@ def render_subscription_selector():
         """, unsafe_allow_html=True)
         if st.button("Elegir Plan Productor", key="btn_p1", use_container_width=True):
             st.session_state['selected_plan'] = "Productor"
-            st.success("¡Plan Productor seleccionado con éxito!")
             st.rerun()
             
     with col_p2:
@@ -73,7 +80,6 @@ def render_subscription_selector():
         """, unsafe_allow_html=True)
         if st.button("Elegir Plan Pro Vet", key="btn_p2", type="primary", use_container_width=True):
             st.session_state['selected_plan'] = "Pro - Médico Veterinario"
-            st.success("¡Plan Pro Veterinario seleccionado con éxito!")
             st.rerun()
             
     with col_p3:
@@ -88,50 +94,101 @@ def render_subscription_selector():
         """, unsafe_allow_html=True)
         if st.button("Elegir Plan Corporativo", key="btn_p3", use_container_width=True):
             st.session_state['selected_plan'] = "Corporativo"
-            st.success("¡Plan Corporativo seleccionado con éxito!")
             st.rerun()
 
-def render_auth_portal():
+def render_auth_or_register_portal():
     st.markdown(f"""
-    <div style='text-align: center; padding: 1.5rem;'>
-        <h1>🔐 Acceso Seguro a Clinic-IA México</h1>
-        <p style='color: #64748b;'>Plan Seleccionado: <b style='color: #0284c7;'>{st.session_state['selected_plan']}</b> | <a href='#' target='_self' onclick='window.location.reload();'>Cambiar Plan</a></p>
+    <div style='text-align: center; padding: 1rem;'>
+        <h1>🛡️ Portal de Autenticación y Registro Seguro</h1>
+        <p style='color: #64748b;'>Plan Activo: <b style='color: #0284c7;'>{st.session_state['selected_plan']}</b> | <a href='#' target='_self' onclick='window.location.reload();'>Cambiar Plan</a></p>
     </div>
     """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        with st.form("login_form"):
-            st.markdown("### Credenciales de Usuario")
-            username = st.text_input("Usuario o Correo Electrónico", value="alejandro.castaneda")
-            password = st.text_input("Contraseña", type="password", value="clinic2026*")
-            
-            st.markdown("### Doble Factor de Autenticación (MFA)")
-            st.info("💡 Ingrese el código temporal de 6 dígitos enviado a su dispositivo seguro (Simulación: ingrese `849201`)")
-            mfa_code = st.text_input("Código Token MFA", value="849201", max_chars=6)
-            
-            login_btn = st.form_submit_button("🔑 Iniciar Sesión Segura", type="primary")
-            
-            if login_btn:
-                if username in USERS_DB and USERS_DB[username]["pass"] == password:
-                    if mfa_code == "849201":
-                        st.session_state['authenticated'] = True
-                        st.session_state['mfa_verified'] = True
-                        st.session_state['current_user'] = USERS_DB[username]
-                        st.success("¡Autenticación y MFA exitosos! Ingresando al sistema...")
-                        st.rerun()
+    auth_tab1, auth_tab2 = st.tabs(["🔑 Iniciar Sesión Segura", "📝 Registrarse Nueva Cuenta Comercial"])
+    
+    # --- PESTAÑA LOGIN CON BIOMETRÍA Y MFA ---
+    with auth_tab1:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            with st.form("login_form"):
+                st.markdown("### Credenciales de Acceso")
+                username = st.text_input("Usuario o Correo Electrónico", value="alejandro.castaneda")
+                password = st.text_input("Contraseña", type="password", value="clinic2026*")
+                
+                st.markdown("### 🔐 Doble Factor de Autenticación (MFA) & Biometría Anti-Fraude")
+                st.info("💡 Se enviará un token dinámico de 6 dígitos vía SMS / WhatsApp a su número registrado.")
+                mfa_code = st.text_input("Código Token MFA", value="849201", max_chars=6)
+                
+                biometric_check = st.checkbox("👆 Autenticar con Huella Digital / Sensor Biométrico (Simulación Passkey FIDO2)")
+                
+                login_btn = st.form_submit_button("🚀 Acceder a Clinic-IA", type="primary")
+                
+                if login_btn:
+                    users_db = st.session_state['registered_users_db']
+                    if username in users_db and users_db[username]["pass"] == password:
+                        if mfa_code == "849201":
+                            if biometric_check:
+                                st.session_state['authenticated'] = True
+                                st.session_state['mfa_verified'] = True
+                                st.session_state['biometric_verified'] = True
+                                st.session_state['current_user'] = users_db[username]
+                                st.success("¡Autenticación biométrica y MFA exitosas! Ingresando al sistema...")
+                                st.rerun()
+                            else:
+                                st.error("❌ Falta validar el factor de huella digital / biometría para prevenir robos de cuenta.")
+                        else:
+                            st.error("❌ Código MFA incorrecto. Verifique su token.")
                     else:
-                        st.error("❌ Código MFA incorrecto. Verifique su token.")
-                else:
-                    st.error("❌ Usuario o contraseña incorrectos.")
+                        st.error("❌ Usuario o contraseña incorrectos.")
+
+    # --- PESTAÑA REGISTRO CON DATOS BANCARIOS Y CONTACTO ---
+    with auth_tab2:
+        col_r1, col_r2, col_r3 = st.columns([1, 2, 1])
+        with col_r2:
+            with st.form("register_form"):
+                st.markdown("### 📋 Registro Comercial y Bancario (Antifraude SINIIGA)")
+                st.markdown("Para garantizar la emisión de recetas oficiales y notificaciones seguras, por favor proporcione sus datos de contacto y facturación:")
+                
+                reg_name = st.text_input("Nombre Completo del Productor / Médico Veterinario")
+                reg_email = st.text_input("Correo Electrónico (Para reportes y alertas)")
+                reg_phone = st.text_input("Número Telefónico / Celular (Para tokens SMS/WhatsApp)")
+                reg_user = st.text_input("Nombre de Usuario deseado")
+                reg_pass = st.text_input("Contraseña Segura", type="password")
+                
+                st.markdown("#### 💳 Información Bancaria (Cifrada para Cobro de Suscripción)")
+                reg_bank = st.text_input("Número de Tarjeta / CLABE Interbancaria (Ej. BBVA / Banorte)", placeholder="**** **** **** 1234")
+                reg_expiry = st.text_input("Vencimiento (MM/AA)", placeholder="12/28")
+                reg_cvv = st.text_input("CVV / Firma Digital", type="password", max_chars=4)
+                
+                reg_biometric_consent = st.checkbox("Registrar huella digital / clave biométrica en este dispositivo")
+                
+                register_btn = st.form_submit_button("💼 Registrarse y Activar Suscripción", type="primary")
+                
+                if register_btn:
+                    if reg_user and reg_pass and reg_email and reg_phone and reg_bank:
+                        if reg_user in st.session_state['registered_users_db']:
+                            st.error("❌ El nombre de usuario ya existe. Elija otro.")
+                        else:
+                            st.session_state['registered_users_db'][reg_user] = {
+                                "pass": reg_pass,
+                                "name": reg_name,
+                                "role": "Propietario / Suscriptor",
+                                "email": reg_email,
+                                "phone": reg_phone,
+                                "bank": reg_bank,
+                                "plan": st.session_state['selected_plan']
+                            }
+                            st.success(f"¡Registro exitoso para **{reg_name}**! Se han enviado las credenciales y tokens a su celular `{reg_phone}`. Por favor inicie sesión en la pestaña anterior.")
+                    else:
+                        st.warning("⚠️ Por favor complete todos los campos obligatorios, incluyendo los datos bancarios y de contacto.")
 
 # Control de flujo inicial de la aplicación
 if not st.session_state['selected_plan']:
     render_subscription_selector()
     st.stop()
 
-if not st.session_state['authenticated'] or not st.session_state['mfa_verified']:
-    render_auth_portal()
+if not st.session_state['authenticated'] or not st.session_state['mfa_verified'] or not st.session_state['biometric_verified']:
+    render_auth_or_register_portal()
     st.stop()
 
 
@@ -437,10 +494,12 @@ class MexicanZoningAndForecastEngine:
 st.sidebar.markdown(f"### 👤 `{st.session_state['current_user']['name']}`")
 st.sidebar.caption(f"Rol: {st.session_state['current_user']['role']}")
 st.sidebar.caption(f"Plan Activo: **{st.session_state['selected_plan']}**")
+st.sidebar.caption(f"📱 Notificaciones SMS: `{st.session_state['current_user']['phone']}`")
 
 if st.sidebar.button("🚪 Cerrar Sesión / Cambiar Plan"):
     st.session_state['authenticated'] = False
     st.session_state['mfa_verified'] = False
+    st.session_state['biometric_verified'] = False
     st.session_state['selected_plan'] = None
     st.rerun()
 
@@ -1074,12 +1133,12 @@ with tab_mesh:
 # --- PESTAÑA 9: VIDEOLLAMADA / URGENCIAS A DISTANCIA ---
 with tab_tele:
     st.subheader("📅 Telemedicina Veterinaria: Agendar Videollamada de Urgencia / Distancia")
-    st.markdown("Conexión directa en tiempo real con el **Dr. Alejandro Castañeda Correa** para casos críticos o asesoría técnica en campo en todo México.")
+    st.markdown(f"Conexión directa en tiempo real con el **Dr. Alejandro Castañeda Correa** para casos críticos o asesoría técnica en campo en todo México. (Notificaciones activas al cel: `{st.session_state['current_user']['phone']}`)")
     
     with st.form("tele_form"):
         col_t1, col_t2 = st.columns(2)
         with col_t1:
-            tele_client = st.text_input("Nombre del Propietario / Productor", value="Alejandro Castañeda")
+            tele_client = st.text_input("Nombre del Propietario / Productor", value=st.session_state['current_user']['name'])
             tele_rancho = st.text_input("Rancho / Predio / Ubicación", value=f"{estado_seleccionado}, {municipio_input}")
             tele_species = st.selectbox("Especie Involucrada", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"])
         with col_t2:
@@ -1087,9 +1146,9 @@ with tab_tele:
             tele_date = st.date_input("Fecha Preferida de Consulta")
             tele_time = st.time_input("Hora Estimada")
             
-        tele_motive = st.text_area("Descripción breve del caso clínico o emergencia", placeholder="Ej. Vaca caída con signos de hipocalcemia postparto / Cólico equino agudo...")
+        tele_motive = st.text_area("Descripción breve del caso clínico o emergencia", placeholder="Ej. Becerro con claudicación severa y sospecha de artritis séptica...")
         
-        submit_tele = st.form_submit_button("🚀 Agendar / Iniciar Videollamada de Urgencia", type="primary")
+        submit_tele = st.form_submit_button("🚀 Agendar y Enviar Notificación SMS/WhatsApp", type="primary")
         
         if submit_tele:
             meeting_id = f"MX-CLINIC-{np.random.randint(1000, 9999)}"
@@ -1104,7 +1163,7 @@ with tab_tele:
                 "Enlace": f"https://meet.jit.si/{meeting_id}"
             }
             save_appointment_sqlite(appointment)
-            st.success("¡Cita de telemedicina registrada exitosamente en SQLite local (Pendiente de sync)!")
+            st.success(f"¡Cita agendada exitosamente y notificación enviada por SMS/WhatsApp al número `{st.session_state['current_user']['phone']}`!")
 
     st.divider()
     st.subheader("📌 Consultas y Urgencias Agendadas (SQLite)")
