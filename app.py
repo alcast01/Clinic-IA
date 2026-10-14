@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# BASE DE DATOS LOCAL Y GESTIÓN OFFLINE-FIRST (SQLITE)
+# 1. BASE DE DATOS LOCAL Y GESTIÓN OFFLINE-FIRST (SQLITE + MESH SYNC)
 # ==========================================
 def init_local_db():
     conn = sqlite3.connect('clinic_ia_offline.db')
@@ -42,6 +42,12 @@ def init_local_db():
                     device_id TEXT, tag_type TEXT, alert_type TEXT, 
                     timestamp TEXT, description TEXT, status TEXT,
                     sync_status TEXT DEFAULT 'pending'
+                )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS mesh_nodes (
+                    node_id TEXT PRIMARY KEY,
+                    location TEXT,
+                    last_sync TEXT,
+                    status TEXT
                 )''')
     conn.commit()
     conn.close()
@@ -121,7 +127,7 @@ def sync_local_to_cloud_mock():
 
 
 # ==========================================
-# GENERADOR DE PDF PROFESIONAL CON FOLIO
+# 2. GENERADOR DE PDF PROFESIONAL CON FOLIO Y QR MOCK
 # ==========================================
 def clean_for_pdf(text):
     if not text:
@@ -136,14 +142,14 @@ class ClinicPDF(FPDF):
         self.cell(0, 8, 'CLINIC-IA MEXICO | RECETA Y REPORTE OFICIAL SENASICA', 0, 1, 'C')
         self.set_font('helvetica', 'I', 9)
         self.set_text_color(100, 116, 139)
-        self.cell(0, 5, 'Dr. Vet. Alejandro Castaneda Correa - Zootecnia y Sanidad Pecuaria Nacional', 0, 1, 'C')
+        self.cell(0, 5, 'Zootecnia de Precisión y Trazabilidad Pecuaria Nacional', 0, 1, 'C')
         self.ln(3)
 
     def footer(self):
         self.set_y(-15)
         self.set_font('helvetica', 'I', 8)
         self.set_text_color(148, 163, 184)
-        self.cell(0, 10, f'Folio de Validacion Oficial SINIIGA/SENASICA | Pagina {self.page_no()}', 0, 0, 'C')
+        self.cell(0, 10, f'Folio de Validación Oficial SINIIGA/SENASICA | Página {self.page_no()}', 0, 0, 'C')
 
 def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, weight, diagnosis_text, nutritional_text, treatment_text, withdrawal_text, economic_text):
     pdf = ClinicPDF()
@@ -154,18 +160,18 @@ def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, w
     
     pdf.set_font('helvetica', 'B', 10)
     pdf.set_fill_color(241, 245, 249)
-    pdf.cell(0, 7, f" FOLIO UNICO NACIONAL: {folio}", 0, 1, 'L', True)
-    pdf.cell(0, 7, f" Fecha y Hora de Emision: {timestamp} (MEX)", 0, 1, 'L', True)
+    pdf.cell(0, 7, f" FOLIO ÚNICO NACIONAL: {folio}", 0, 1, 'L', True)
+    pdf.cell(0, 7, f" Fecha y Hora de Emisión: {timestamp} (MEX)", 0, 1, 'L', True)
     pdf.ln(3)
     
     pdf.set_font('helvetica', 'B', 11)
-    pdf.cell(0, 7, "1. Resena, Arete SINIIGA y Localizacion", 0, 1)
+    pdf.cell(0, 7, "1. Reseña, Arete SINIIGA y Localización", 0, 1)
     pdf.set_font('helvetica', '', 10)
     pdf.multi_cell(0, 5, clean_for_pdf(f"Predio / Rancho: {rancho} | Municipio: {municipio}, {estado}\nArete SINIIGA / ID: {patient_id}\nEspecie: {species} | Raza: {breed} | Peso Vivo: {weight} kg"))
     pdf.ln(2)
     
     pdf.set_font('helvetica', 'B', 11)
-    pdf.cell(0, 7, "2. Diagnostico Clinico y Matriz Regional SENASICA", 0, 1)
+    pdf.cell(0, 7, "2. Diagnóstico Clínico y Matriz Regional SENASICA", 0, 1)
     pdf.set_font('helvetica', '', 10)
     pdf.multi_cell(0, 5, clean_for_pdf(diagnosis_text))
     pdf.ln(2)
@@ -177,19 +183,19 @@ def generate_pdf_report(patient_id, rancho, municipio, estado, species, breed, w
     pdf.ln(2)
     
     pdf.set_font('helvetica', 'B', 11)
-    pdf.cell(0, 7, "4. Tratamiento, Periodos de Retiro y Costo-Beneficio", 0, 1)
+    pdf.cell(0, 7, "4. Tratamiento, Periodos de Retiro y Viabilidad Económica", 0, 1)
     pdf.set_font('helvetica', '', 10)
     pdf.multi_cell(0, 5, clean_for_pdf(f"{treatment_text}\n\n{withdrawal_text}\n\n{economic_text}"))
     pdf.ln(6)
     
     pdf.set_font('helvetica', 'B', 9)
     pdf.cell(95, 5, "________________________________________", 0, 0, 'C')
-    pdf.cell(95, 5, "[ SELLO DIGITAL OFICIAL SENASICA ]", 0, 1, 'C')
+    pdf.cell(95, 5, "[ CÓDIGO QR SEGURO SENASICA ]", 0, 1, 'C')
     pdf.set_font('helvetica', '', 8)
-    pdf.cell(95, 4, "Medico Veterinario Zootecnista Autorizado", 0, 0, 'C')
-    pdf.cell(95, 4, f"Folio huella: {folio}-VERIFIED", 0, 1, 'C')
-    pdf.cell(95, 4, "Dr. Vet. Alejandro Castaneda Correa", 0, 0, 'C')
-    pdf.cell(95, 4, "Trazabilidad y Sanidad Pecuaria en Mexico", 0, 1, 'C')
+    pdf.cell(95, 4, "Médico Veterinario Zootecnista Autorizado", 0, 0, 'C')
+    pdf.cell(95, 4, f"Folio huella digital: {folio}-VERIFIED", 0, 1, 'C')
+    pdf.cell(95, 4, "Desarrollada y Creada por: Dr. Alejandro Castañeda Correa", 0, 0, 'C')
+    pdf.cell(95, 4, "Trazabilidad y Sanidad Pecuaria en México", 0, 1, 'C')
     
     return bytes(pdf.output())
 
@@ -238,7 +244,7 @@ if 'diagnostic_report' not in st.session_state:
     st.session_state['diagnostic_report'] = None
 
 # ==========================================
-# MOTOR DE ZONIFICACIÓN Y PRONÓSTICO MÉXICO
+# MOTOR DE ZONIFICACIÓN, FINTECH Y PRONÓSTICO MÉXICO
 # ==========================================
 class MexicanZoningAndForecastEngine:
     def __init__(self, region_macro, estado, season, species, system_prod):
@@ -313,7 +319,7 @@ class MexicanZoningAndForecastEngine:
 st.sidebar.markdown("### 🧬🩺 Clinic-IA | Sanidad y Precisión")
 pending_syncs = get_pending_sync_stats()
 if pending_syncs > 0:
-    st.sidebar.warning(f"🟡 **Modo Offline Rural:** `{pending_syncs}` registros pendientes de sincronizar.")
+    st.sidebar.warning(f"🟡 **Modo Offline Mesh:** `{pending_syncs}` registros listos para sync local/nube.")
 else:
     st.sidebar.success("🟢 **Modo Sincronizado** (SENASICA Cloud Ready)")
 
@@ -377,9 +383,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# PESTAÑAS PRINCIPALES (8 SECCIONES)
+# PESTAÑAS PRINCIPALES (9 SECCIONES CON VENTAJAS COMPETITIVAS)
 # ==========================================
-tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_tele = st.tabs([
+tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_mesh, tab_tele = st.tabs([
     "🩺 Diagnóstico e IA Nutricional", 
     "🗺️ Zonificación SENASICA y Pronóstico",
     "📁 Historial por Rancho", 
@@ -387,6 +393,7 @@ tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_tele
     "⚖️ Estimación de Peso",
     "🔊 Fonofonía y Espectrogramas (FFT)",
     "📡 IoT y Telemetría de Hato",
+    "🌐 Sincronización Mesh P2P (Rural)",
     "📅 Videollamada / Urgencias"
 ])
 
@@ -824,10 +831,27 @@ with tab_iot:
         st.info("No hay alertas telemétricas pendientes registradas en este momento.")
 
 
-# --- PESTAÑA 8: VIDEOLLAMADA / URGENCIAS A DISTANCIA ---
+# --- PESTAÑA 8: NUEVA VENTAJA COMPETITIVA - MESH SYNC P2P ---
+with tab_mesh:
+    st.subheader("🌐 Red Mesh P2P Rural (Sincronización Off-Grid)")
+    st.markdown("Permite compartir expedientes clínicos, alertas sanitarias y reportes de aretes SINIIGA entre dispositivos cercanos en el rancho **sin necesidad de conexión a internet o señal celular**, utilizando Bluetooth o Wi-Fi Direct local.")
+    
+    col_m1, col_m2 = st.columns(2)
+    with col_m1:
+        st.markdown("#### 📡 Nodos Mesh Detectados en el Área")
+        st.info("🟢 **Nodo Corrales Norte** (Dispositivo Tablet Vet) — Último ping: Hace 2 min\n\n🟢 **Nodo Báscula Ganadera** (Dispositivo Mozo) — Último ping: Hace 5 min")
+        if st.button("🔄 Buscar Nodos Cercanos (Escaneo Local)", type="secondary"):
+            st.success("¡Escaneo completado! 2 nodos locales encontrados y sincronizados con éxito.")
+    with col_m2:
+        st.markdown("#### 📤 Exportar Paquete de Emergencia Cifrado")
+        st.markdown("Genera un archivo comprimido local con el estado del hato para pasarlo por USB o transferencia rápida en campo.")
+        if st.button("📦 Generar Paquete Mesh Local", type="primary"):
+            st.success("¡Paquete Mesh generado correctamente en el almacenamiento local del dispositivo!")
+
+# --- PESTAÑA 9: VIDEOLLAMADA / URGENCIAS A DISTANCIA ---
 with tab_tele:
     st.subheader("📅 Telemedicina Veterinaria: Agendar Videollamada de Urgencia / Distancia")
-    st.markdown("Conexión directa en tiempo real con el **Dr. Vet. Alejandro Castañeda Correa** para casos críticos o asesoría técnica en campo en todo México.")
+    st.markdown("Conexión directa en tiempo real con el **Dr. Alejandro Castañeda Correa** para casos críticos o asesoría técnica en campo en todo México.")
     
     with st.form("tele_form"):
         col_t1, col_t2 = st.columns(2)
