@@ -18,6 +18,82 @@ st.set_page_config(
 )
 
 # ==========================================
+# 0. CONTROL DE AUTENTICACIÓN, MFA Y PLANES
+# ==========================================
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+if 'mfa_verified' not in st.session_state:
+    st.session_state['mfa_verified'] = False
+if 'current_user' not in st.session_state:
+    st.session_state['current_user'] = None
+if 'selected_plan' not in st.session_state:
+    st.session_state['selected_plan'] = "Pro - Médico Veterinario"
+
+# Credenciales de demostración del sistema
+USERS_DB = {
+    "alejandro.castaneda": {"pass": "clinic2026*", "name": "Dr. Alejandro Castañeda", "role": "Administrador / Creador"},
+    "veterinario": {"pass": "vet123", "name": "Médico de Campo", "role": "Veterinario Autorizado"},
+    "productor": {"pass": "rancho123", "name": "Productor Pecuario", "role": "Ganadero / Propietario"}
+}
+
+def render_auth_portal():
+    st.markdown("""
+    <div style='text-align: center; padding: 2rem;'>
+        <h1>🔐 Acceso Seguro a Clinic-IA México</h1>
+        <p style='color: #64748b;'>Plataforma de Zootecnia de Precisión y Trazabilidad SINIIGA/SENASICA</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.form("login_form"):
+            st.markdown("### Credenciales de Usuario")
+            username = st.text_input("Usuario o Correo Electrónico", value="alejandro.castaneda")
+            password = st.text_input("Contraseña", type="password", value="clinic2026*")
+            
+            st.markdown("### Doble Factor de Autenticación (MFA)")
+            st.info("💡 Ingrese el código temporal de 6 dígitos enviado a su dispositivo seguro (Simulación: ingrese `849201`)")
+            mfa_code = st.text_input("Código Token MFA", value="849201", max_chars=6)
+            
+            login_btn = st.form_submit_button("🔑 Iniciar Sesión Segura", type="primary")
+            
+            if login_btn:
+                if username in USERS_DB and USERS_DB[username]["pass"] == password:
+                    if mfa_code == "849201":
+                        st.session_state['authenticated'] = True
+                        st.session_state['mfa_verified'] = True
+                        st.session_state['current_user'] = USERS_DB[username]
+                        st.success("¡Autenticación y MFA exitosos! Ingresando al sistema...")
+                        st.rerun()
+                    else:
+                        st.error("❌ Código MFA incorrecto. Verifique su token.")
+                else:
+                    st.error("❌ Usuario o contraseña incorrectos.")
+                    
+        st.markdown("---")
+        with st.expander("📋 Ver Planes de Suscripción Disponibles"):
+            st.markdown("""
+            ### Elige el plan ideal para tu operación pecuaria:
+            * **🌱 Plan Productor / Rancho Independiente ($499 MXN / mes):**
+              * Hasta 500 aretes SINIIGA activos.
+              * Diagnóstico clínico y recetas PDF ilimitadas.
+              * Sincronización Mesh P2P básica.
+            * **🩺 Plan Pro - Médico Veterinario ($1,299 MXN / mes):**
+              * Múltiples ranchos y hatos ilimitados.
+              * Vademecum avanzado y análisis de costo-beneficio de fármacos.
+              * Alertas IoT y telemetría de hato en tiempo real.
+            * **🏢 Plan Corporativo / Asociación Ganadera (A medida):**
+              * Integración directa con bases de datos SENASICA.
+              * Nodos Mesh ilimitados para todo el personal técnico en campo.
+              * Soporte prioritario 24/7 y API dedicada.
+            """)
+
+if not st.session_state['authenticated'] or not st.session_state['mfa_verified']:
+    render_auth_portal()
+    st.stop()
+
+
+# ==========================================
 # 1. BASE DE DATOS LOCAL Y GESTIÓN OFFLINE-FIRST (SQLITE + MESH SYNC)
 # ==========================================
 def init_local_db():
@@ -316,7 +392,15 @@ class MexicanZoningAndForecastEngine:
 # ==========================================
 # PANEL LATERAL DE MÉXICO Y ZONIFICACIÓN
 # ==========================================
-st.sidebar.markdown("### 🧬🩺 Clinic-IA | Sanidad y Precisión")
+st.sidebar.markdown(f"### 👤 `{st.session_state['current_user']['name']}`")
+st.sidebar.caption(f"Rol: {st.session_state['current_user']['role']}")
+
+if st.sidebar.button("🚪 Cerrar Sesión"):
+    st.session_state['authenticated'] = False
+    st.session_state['mfa_verified'] = False
+    st.rerun()
+
+st.sidebar.markdown("---")
 pending_syncs = get_pending_sync_stats()
 if pending_syncs > 0:
     st.sidebar.warning(f"🟡 **Modo Offline Mesh:** `{pending_syncs}` registros listos para sync local/nube.")
@@ -383,9 +467,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# PESTAÑAS PRINCIPALES (9 SECCIONES CON VENTAJAS COMPETITIVAS)
+# PESTAÑAS PRINCIPALES (10 SECCIONES CON SUSCRIPCIONES Y SEGURIDAD)
 # ==========================================
-tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_mesh, tab_tele = st.tabs([
+tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_mesh, tab_subs, tab_tele = st.tabs([
     "🩺 Diagnóstico e IA Nutricional", 
     "🗺️ Zonificación SENASICA y Pronóstico",
     "📁 Historial por Rancho", 
@@ -394,6 +478,7 @@ tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_mesh
     "🔊 Fonofonía y Espectrogramas (FFT)",
     "📡 IoT y Telemetría de Hato",
     "🌐 Sincronización Mesh P2P (Rural)",
+    "💳 Planes de Suscripción",
     "📅 Videollamada / Urgencias"
 ])
 
@@ -831,7 +916,7 @@ with tab_iot:
         st.info("No hay alertas telemétricas pendientes registradas en este momento.")
 
 
-# --- PESTAÑA 8: NUEVA VENTAJA COMPETITIVA - MESH SYNC P2P ---
+# --- PESTAÑA 8: MESH SYNC P2P ---
 with tab_mesh:
     st.subheader("🌐 Red Mesh P2P Rural (Sincronización Off-Grid)")
     st.markdown("Permite compartir expedientes clínicos, alertas sanitarias y reportes de aretes SINIIGA entre dispositivos cercanos en el rancho **sin necesidad de conexión a internet o señal celular**, utilizando Bluetooth o Wi-Fi Direct local.")
@@ -848,7 +933,64 @@ with tab_mesh:
         if st.button("📦 Generar Paquete Mesh Local", type="primary"):
             st.success("¡Paquete Mesh generado correctamente en el almacenamiento local del dispositivo!")
 
-# --- PESTAÑA 9: VIDEOLLAMADA / URGENCIAS A DISTANCIA ---
+
+# --- PESTAÑA 9: PLANES DE SUSCRIPCIÓN ---
+with tab_subs:
+    st.subheader("💳 Planes de Suscripción y Licenciamiento Clinic-IA")
+    st.markdown("Seleccione el plan que mejor se adapte a las necesidades de su rancho, clínica o asociación ganadera.")
+    
+    col_p1, col_p2, col_p3 = st.columns(3)
+    
+    with col_p1:
+        st.markdown("""
+        <div class="card">
+            <h3>🌱 Productor</h3>
+            <h2 style='color: #0284c7;'>$499 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
+            <p>Ideal برای ranchos independientes y pequeños productores en México.</p>
+            <hr>
+            <p>✅ Hasta 500 aretes SINIIGA</p>
+            <p>✅ Recetas y reportes PDF oficiales</p>
+            <p>✅ Red Mesh P2P básica</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Elegir Plan Productor", key="p1"):
+            st.session_state['selected_plan'] = "Productor"
+            st.success("¡Plan Productor seleccionado con éxito!")
+            
+    with col_p2:
+        st.markdown("""
+        <div class="card" style='border: 2px solid #38bdf8;'>
+            <h3>🩺 Pro Veterinario</h3>
+            <h2 style='color: #0284c7;'>$1,299 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
+            <p>Diseñado para Médicos Zootecnistas que atienden múltiples predios.</p>
+            <hr>
+            <p>✅ Aretes y hatos ilimitados</p>
+            <p>✅ Vademecum y Costo-Beneficio</p>
+            <p>✅ Alertas IoT y Telemetría</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Elegir Plan Pro Vet", key="p2", type="primary"):
+            st.session_state['selected_plan'] = "Pro - Médico Veterinario"
+            st.success("¡Plan Pro Veterinario seleccionado con éxito!")
+            
+    with col_p3:
+        st.markdown("""
+        <div class="card">
+            <h3>🏢 Corporativo</h3>
+            <h2 style='color: #0284c7;'>$3,499 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
+            <p>Para asociaciones ganaderas, grandes cuencas lecheras y agroindustrias.</p>
+            <hr>
+            <p>✅ Conexión directa SENASICA</p>
+            <p>✅ Nodos Mesh ilimitados</p>
+            <p>✅ Soporte prioritario 24/7</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Elegir Plan Corporativo", key="p3"):
+            st.session_state['selected_plan'] = "Corporativo"
+            st.success("¡Plan Corporativo seleccionado con éxito!")
+
+
+# --- PESTAÑA 10: VIDEOLLAMADA / URGENCIAS A DISTANCIA ---
 with tab_tele:
     st.subheader("📅 Telemedicina Veterinaria: Agendar Videollamada de Urgencia / Distancia")
     st.markdown("Conexión directa en tiempo real con el **Dr. Alejandro Castañeda Correa** para casos críticos o asesoría técnica en campo en todo México.")
