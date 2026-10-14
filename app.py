@@ -427,22 +427,42 @@ municipio_input = st.sidebar.text_input("📍 Municipio / Localidad", value="Tla
 sb_season = st.sidebar.selectbox("🌦️ Estación Climática Actual", ["Secas / Estiaje prolongado", "Lluvias / Humedad alta / Huracanes", "Transición / Frentes fríos (Nortes)"])
 sb_species = st.sidebar.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"])
 
-if sb_species in ["Bovino", "Ovino", "Caprino"]:
-    sb_breed = st.sidebar.selectbox("Raza / Biotipo", ["Holstein", "Beefmaster", "Angus", "Cebú / Brahman", "Suizo Pardo", "Pelibuey / Boer", "Cruzado"])
-    sb_prod_type = "Leche" if st.sidebar.selectbox("Propósito", ["Leche", "Carne", "Doble Propósito"]) == "Leche" else "Carne"
+# --- AGRUPACIÓN DE RAZAS Y FAMILIAS ZOOTÉCNICAS ---
+if sb_species in ["Bovino"]:
+    breed_family = st.sidebar.selectbox("Familia Zootécnica", [
+        "🥩 Carne - Bos Taurus (Británicas / Continentales)",
+        "🤠 Carne - Bos Indicus (Zebú / Adaptadas)",
+        "🧬 Carne - Sintéticas / Compuestas",
+        "🥛 Leche Especializada",
+        "🧀 Doble Propósito / Rústicas Regionales"
+    ])
+    
+    breed_catalog = {
+        "🥩 Carne - Bos Taurus (Británicas / Continentales)": ["Angus (Negro/Rojo)", "Hereford", "Charolais", "Simmental", "Limousin", "Belgian Blue"],
+        "🤠 Carne - Bos Indicus (Zebú / Adaptadas)": ["Brahman (Blanco/Rojo)", "Nelore", "Gyr", "Guzerat", "Indubrasil"],
+        "🧬 Carne - Sintéticas / Compuestas": ["Beefmaster", "Brangus", "Braford", "Santa Gertrudis", "Simbrah"],
+        "🥛 Leche Especializada": ["Holstein", "Jersey", "Guernsey", "Ayrshire"],
+        "🧀 Doble Propósito / Rústicas Regionales": ["Suizo Pardo (Americano/Europeo)", "Simental Ley de Leche", "Criollo Mexicano / Tropicarne", "Cruzado F1 (Zebú x Europeo)"]
+    }
+    
+    sb_breed = st.sidebar.selectbox("Raza Específica", breed_catalog[breed_family])
+    sb_prod_type = "Leche" if "Leche" in breed_family else "Carne"
+elif sb_species in ["Ovino", "Caprino"]:
+    sb_breed = st.sidebar.selectbox("Raza / Biotipo", ["Pelibuey", "Dorper", "Katahdin", "Boer", "Saanen", "Alpine", "Cruzado Regional"])
+    sb_prod_type = "Carne"
 else:
     sb_breed = st.sidebar.text_input("Raza / Biotipo", value="Estándar / Mestizo")
     sb_prod_type = "general"
-    
-sb_age_group = st.sidebar.selectbox("Grupo Etario", ["Neonato / Cría", "Juvenil / Levante", "Adulto en Producción / Mantenimiento", "Geriátrico / Reproductor"])
+
+sb_age_group = st.sidebar.selectbox("Grupo Etario", ["Neonato / Cría (0 - 3 meses)", "Lactante / Destete (3 - 8 meses)", "Juvenil / Levante (8 - 18 meses)", "Adulto en Producción / Mantenimiento", "Reproductor / Geriátrico"])
 sb_sex = st.sidebar.selectbox("Sexo", ["Hembra", "Macho", "Macho Castrado"])
 
 sb_evolution = st.sidebar.selectbox("Tiempo de Evolución", ["Hiperagudo (< 12 hrs)", "Agudo (12 - 48 hrs)", "Subagudo (3 - 7 días)", "Crónico (> 7 días)"])
 sb_morbidity = st.sidebar.selectbox("Incidencia en el Hato / Lote", ["Caso esporádico (1 animal)", "Brote focal (2 a 5 animales)", "Brote masivo (> 10%)"])
-sb_system = st.sidebar.selectbox("Sistema Principal Afectado", ["Digestivo / Metabólico", "Respiratorio", "Locomotor / Podal", "Reproductivo / Urogenital", "Nervioso / Infeccioso sistémico"])
+sb_system = st.sidebar.selectbox("Sistema Principal Afectado", ["Locomotor / Podal / Extremidades", "Digestivo / Metabólico", "Respiratorio", "Reproductivo / Urogenital", "Nervioso / Infeccioso sistémico"])
 
 sb_system_prod = st.sidebar.selectbox("Sistema de Alojamiento", ["Estabulación total / Confinamiento", "Pastoreo rotacional intensivo", "Sistema extensivo / Agostadero"])
-sb_diet_change = st.sidebar.selectbox("Factor de Riesgo / Sanitario", ["Sin cambios recientes", "Cambio abrupto de dieta / Forraje", "Ingreso de animales sin cuarentena (SINIIGA)", "Exposición a vectores / garrapatas / murciélagos"])
+sb_diet_change = st.sidebar.selectbox("Factor de Riesgo / Sanitario", ["Sin cambios recientes", "Cambio abrupto de dieta / Forraje", "Ingreso de animales sin cuarentena (SINIIGA)", "Exposición a vectores / garrapatas / murciélagos", "Trauma en parto / Tracción forzada"])
 
 current_patient_id = st.sidebar.text_input("🆔 Arete SINIIGA / ID / Nombre", value="MX-849201")
 
@@ -485,40 +505,66 @@ tab_diag, tab_zone, tab_reg, tab_drugs, tab_weight, tab_audio, tab_iot, tab_mesh
 # --- PESTAÑA 1: DIAGNÓSTICO CLÍNICO Y SIFONEO NUTRICIONAL ---
 with tab_diag:
     st.subheader(f"Evaluación Clínica de Precisión: Arete SINIIGA `[{current_patient_id}]`")
-    st.info(f"Ubicación activa: **{estado_seleccionado}, {municipio_input} ({macro_region})** | Estación: **{sb_season}**")
+    st.info(f"Ubicación activa: **{estado_seleccionado}, {municipio_input} ({macro_region})** | Estación: **{sb_season}** | Raza: **{sb_breed}**")
     
     col_d1, col_d2, col_d3 = st.columns(3)
     with col_d1:
-        temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.5, step=0.1)
+        temp = st.number_input("Temperatura Corporal (°C)", min_value=30.0, max_value=43.0, value=38.8, step=0.1)
     with col_d2:
-        hr = st.number_input("Frecuencia Cardíaca (lpm)", min_value=10, max_value=220, value=70, step=1)
+        hr = st.number_input("Frecuencia Cardíaca (lpm)", min_value=10, max_value=220, value=90, step=1)
     with col_d3:
-        rr = st.number_input("Frecuencia Respiratoria (rpm)", min_value=5, max_value=120, value=20, step=1)
+        rr = st.number_input("Frecuencia Respiratoria (rpm)", min_value=5, max_value=120, value=32, step=1)
 
     st.markdown("---")
-    st.markdown("#### Hallazgos Clínicos y Factores de Riesgo")
+    st.markdown("#### Hallazgos Clínicos, Semiología y Evaluación Locomotora Especializada")
+    
     col_s1, col_s2 = st.columns(2)
     with col_s1:
-        sign_1 = st.checkbox("Hipomotilidad / Atonía orgánica")
-        sign_2 = st.checkbox("Deshidratación moderada/severa (>6%)")
+        sign_loco1 = st.checkbox("Aumento de volumen / Inflamación articular (Carpo, Tarso, Menudillo)")
+        sign_loco2 = st.checkbox("Dolor / Calor a la palpación de pezuña / Banda coronaria / Espacio interdigital")
+        sign_loco3 = st.checkbox("Incapacidad para sostener peso / Claudicación de grado elevado (3/3 o 4/5)")
+        sign_loco4 = st.checkbox("Antecedente de infección umbilical (Ombligo engrosado / Doloroso)")
     with col_s2:
-        sign_3 = st.checkbox("Signos de dolor abdominal / cólico / incomodidad")
-        sign_4 = st.checkbox("Secreción óculo-nasal o descarga hemorrágica / disfonia")
+        sign_loco5 = st.checkbox("Crepitación al movimiento u olor fétido muscular / Enfisema subcutáneo")
+        sign_loco6 = st.checkbox("Acortamiento o retracción de tendones flexores (Piez de gatillo / Hiperextensión)")
+        sign_loco7 = st.checkbox("Sintomatología neurológica / Asimetría pélvica / Postura en xifosis")
+        sign_loco8 = st.checkbox("Postración prolongada / Rigidez muscular progresiva")
 
-    if st.button("Ejecutar Diagnóstico y Modelo Predictivo Nacional", type="primary"):
+    if st.button("Ejecutar Diagnóstico Experto Locomotor y Modelo Predictivo", type="primary"):
         engine = MexicanZoningAndForecastEngine(macro_region, estado_seleccionado, sb_season, sb_species, sb_prod_type)
         vitals_eval = engine.get_regional_sanitary_profile()
         
-        differentials = [
-            {"dx": "Acidosis Ruminal Subaguda (SARA) / Trastorno Metabólico", "prob": 92 if "Digestivo" in sb_system else 65},
-            {"dx": "Complejo Infeccioso Endémico Regional (SENASICA Foco Rojo)", "prob": 84},
-            {"dx": "Proceso inflamatorio sistémico secundario por estrés ambiental", "prob": 72}
-        ]
+        differentials = []
+        
+        if "Locomotor" in sb_system or sign_loco1 or sign_loco2 or sign_loco3:
+            if "Neonato" in sb_age_group or sign_loco4:
+                differentials.append({"dx": "Artritis Séptica / Poliartritis Secundaria a Onfaloflebitis ('Mal de Ombligo')", "prob": 94})
+                differentials.append({"dx": "Fractura Epifisiaria / Trauma Físico por Parto Distócico", "prob": 78})
+                differentials.append({"dx": "Enfermedad del Músculo Blanco (Miopatía Nutricional por Deficiencia de Se/Vit E)", "prob": 68})
+            elif sign_loco5:
+                differentials.append({"dx": "Carbón Sintomático (Blackleg / Clostridium chauvoei)", "prob": 95})
+                differentials.append({"dx": "Miositis Gangrenosa / Traumatismo Muscular Severo", "prob": 72})
+            elif sign_loco2:
+                differentials.append({"dx": "Pododermatitis Infecciosa (Gabarro / Pedero / Fusobacterium necrophorum)", "prob": 91})
+                differentials.append({"dx": "Lesión Mecánica / Penetración de Cuerpo Extraño Interdigital", "prob": 82})
+            elif sign_loco6:
+                differentials.append({"dx": "Deformidad Tendinosa Congénita (Tendones Flexores Contraídos)", "prob": 89})
+                differentials.append({"dx": "Osteocondrosis / Displasia Articular Congénita", "prob": 75})
+            else:
+                differentials.append({"dx": "Esguince / Trauma en Ligamentos Cruzados o Articulación Coxofemoral", "prob": 85})
+                differentials.append({"dx": "Artritis Séptica Subaguda", "prob": 79})
+                differentials.append({"dx": "Deficiencia Mineral de Calcio / Fósforo / Cobre (Osteomalacia / Raquitismo)", "prob": 64})
+        else:
+            differentials = [
+                {"dx": "Acidosis Ruminal Subaguda (SARA) / Trastorno Metabólico", "prob": 88},
+                {"dx": "Complejo Infeccioso Endémico Regional (SENASICA Foco Rojo)", "prob": 76},
+                {"dx": "Proceso inflamatorio sistémico secundario", "prob": 65}
+            ]
         
         nutri_advice = (
-            "🌾 **Sifoneo Nutricional Adaptado a México:**\n"
-            f"- Ajustar niveles de proteína y FDN acorde a la disponibilidad de forrajes en `{estado_seleccionado}` durante la temporada de `{sb_season}`.\n"
-            "- Suplementación mineral con bloques multinutricionales para prevenir caídas metabólicas."
+            "🌾 **Sifoneo Nutricional y Preventivo Locomotor:**\n"
+            f"- Proporcionar suplementación mineral alta en Selenio, Vitamina E, Calcio y Fósforo adaptada a la región `{estado_seleccionado}`.\n"
+            "- Garantizar curación umbilical inmediata al nacimiento con Solución Yodada al 7-10% y asegurar curado de colostro (mínimo 10% del peso vivo en primeras 6 horas)."
         )
         
         forecast_data = engine.compute_disease_forecast(sb_system)
@@ -536,7 +582,7 @@ with tab_diag:
     st.subheader("📊 Reporte Diagnóstico y Matriz de Riesgo Nacional")
     if st.session_state['diagnostic_report']:
         report = st.session_state['diagnostic_report']
-        st.markdown(f"**Paciente Arete:** `{report['patient']}` | 📍 **Región:** `{report['region']}`")
+        st.markdown(f"**Paciente Arete:** `{report['patient']}` | 📍 **Región:** `{report['region']}` | **Raza:** `{sb_breed}`")
         
         st.markdown("### 1. Diagnósticos Diferenciales Ponderados")
         for idx, item in enumerate(report['differentials'], 1):
@@ -883,7 +929,7 @@ with tab_iot:
                 iot_alert_type = st.selectbox("Tipo de Alerta Temprana", ["⚠️ Alerta SARA / Baja Rumina (< 350 min/día)", "🔥 Alerta Fiebre / Temperatura Elevada", "💃 Alerta Celo Detectado (Pico Actividad)", "🔋 Batería Baja / Sin Señal"])
                 iot_status = st.selectbox("Estatus de Alerta", ["Activa / Pendiente de Revisión", "Atendida / En Tratamiento", "Descartada"])
             
-            iot_desc = st.text_area("Descripción telemétrica", value="El sensor detectó una caída sostenida del tiempo de rumina durante las últimas 18 horas en el predio.")
+            iot_desc = st.text_area("Descripción telemétrica", value="El sensor detectó una caída sustained del tiempo de rumina durante las últimas 18 horas en el predio.")
             
             submit_iot = st.form_submit_button("🛰️ Registrar Alerta IoT en Base de Datos", type="primary")
             if submit_iot:
@@ -946,7 +992,7 @@ with tab_subs:
         <div class="card">
             <h3>🌱 Productor</h3>
             <h2 style='color: #0284c7;'>$499 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
-            <p>Ideal برای ranchos independientes y pequeños productores en México.</p>
+            <p>Ideal para ranchos independientes y pequeños productores en México.</p>
             <hr>
             <p>✅ Hasta 500 aretes SINIIGA</p>
             <p>✅ Recetas y reportes PDF oficiales</p>
