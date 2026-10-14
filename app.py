@@ -526,7 +526,7 @@ with tab_diag:
         sign_loco4 = st.checkbox("Antecedente de infección umbilical (Ombligo engrosado / Doloroso)")
     with col_s2:
         sign_loco5 = st.checkbox("Crepitación al movimiento u olor fétido muscular / Enfisema subcutáneo")
-        sign_loco6 = st.checkbox("Acortamiento o retracción de tendones flexores (Piez de gatillo / Hiperextensión)")
+        sign_loco6 = st.checkbox("Acortamiento o retracción de tendones flexores (Pie de gatillo / Hiperextensión)")
         sign_loco7 = st.checkbox("Sintomatología neurológica / Asimetría pélvica / Postura en xifosis")
         sign_loco8 = st.checkbox("Postración prolongada / Rigidez muscular progresiva")
 
@@ -535,38 +535,78 @@ with tab_diag:
         vitals_eval = engine.get_regional_sanitary_profile()
         
         differentials = []
+        treatment_suggestion = ""
+        management_recommendations = ""
+        prognosis_text = ""
         
         if "Locomotor" in sb_system or sign_loco1 or sign_loco2 or sign_loco3:
             if "Neonato" in sb_age_group or sign_loco4:
                 differentials.append({"dx": "Artritis Séptica / Poliartritis Secundaria a Onfaloflebitis ('Mal de Ombligo')", "prob": 94})
                 differentials.append({"dx": "Fractura Epifisiaria / Trauma Físico por Parto Distócico", "prob": 78})
                 differentials.append({"dx": "Enfermedad del Músculo Blanco (Miopatía Nutricional por Deficiencia de Se/Vit E)", "prob": 68})
+                
+                treatment_suggestion = (
+                    "💉 **Tratamiento Clínico Recomendado:**\n"
+                    "- **Antibioticoterapia sistémica:** Ceftiofur Clorhidrato (2.2 mg/kg IM c/24h por 7-10 días) o Florfenicol (20 mg/kg IM c/48h).\n"
+                    "- **Antiinflamatorio y Analgesia:** Meloxicam (0.5 mg/kg SC c/24-48h) para mitigar el dolor articular.\n"
+                    "- **Lavadura o Artrocentesis:** Lavado salino estéril con antibiótico en articulaciones con efusión purulenta severa."
+                )
+                management_recommendations = (
+                    "🐄 **Manejo y Recomendaciones Biosanitarias:**\n"
+                    "- Aislamiento en corral hospital con cama blanda de paja limpia y seca.\n"
+                    "- Curación umbilical inmediata al nacimiento con Yodo al 7-10%.\n"
+                    "- Garantizar calostrado oportuno (10% del peso vivo en las primeras 6 horas)."
+                )
+                prognosis_text = "🔮 **Pronóstico:** **Reservado a Desfavorable** (Depende del grado de destrucción del cartílago articular y respuesta rápida al tratamiento)."
             elif sign_loco5:
                 differentials.append({"dx": "Carbón Sintomático (Blackleg / Clostridium chauvoei)", "prob": 95})
                 differentials.append({"dx": "Miositis Gangrenosa / Traumatismo Muscular Severo", "prob": 72})
+                
+                treatment_suggestion = (
+                    "💉 **Tratamiento Clínico de Emergencia:**\n"
+                    "- **Penicilina G Sódica / Procaínica:** Dosis elevadas (30,000 UI/kg IM/IV) cada 12-24h.\n"
+                    "- **Fenestración muscular:** Incisión quirúrgica longitudinal en tejidos necróticos para irrigar con agua oxigenada (Peróxido de Hidrógeno al 3%)."
+                )
+                management_recommendations = (
+                    "🐄 **Manejo:** Incineración o entierro profundo con cal de cadáveres para evitar contaminación de potreros. Vacunación inmediata del lote."
+                )
+                prognosis_text = "🔮 **Pronóstico:** **Grave / Muy Desfavorable** (>90% de mortalidad por endotoxemia)."
             elif sign_loco2:
                 differentials.append({"dx": "Pododermatitis Infecciosa (Gabarro / Pedero / Fusobacterium necrophorum)", "prob": 91})
                 differentials.append({"dx": "Lesión Mecánica / Penetración de Cuerpo Extraño Interdigital", "prob": 82})
-            elif sign_loco6:
-                differentials.append({"dx": "Deformidad Tendinosa Congénita (Tendones Flexores Contraídos)", "prob": 89})
-                differentials.append({"dx": "Osteocondrosis / Displasia Articular Congénita", "prob": 75})
+                
+                treatment_suggestion = (
+                    "💉 **Tratamiento Clínico:**\n"
+                    "- **Oxitetraciclina L.A. (20%):** 20 mg/kg IM profunda (dosis única o repetir a 72h).\n"
+                    "- **Tratamiento tópico:** Limpieza interdigital con Sulfato de Cobre al 10% y curación protectora."
+                )
+                management_recommendations = "🐄 **Manejo:** Recorte podal funcional y desinfección de corrales/lodazales."
+                prognosis_text = "🔮 **Pronóstico:** **Favorable** con intervención oportuna."
             else:
-                differentials.append({"dx": "Esguince / Trauma en Ligamentos Cruzados o Articulación Coxofemoral", "prob": 85})
+                differentials.append({"dx": "Deformidad Tendinosa Congénita / Trauma en Ligamentos Cruzados", "prob": 88})
                 differentials.append({"dx": "Artritis Séptica Subaguda", "prob": 79})
-                differentials.append({"dx": "Deficiencia Mineral de Calcio / Fósforo / Cobre (Osteomalacia / Raquitismo)", "prob": 64})
+                
+                treatment_suggestion = (
+                    "💉 **Tratamiento:** Fisioterapia, vendajes funcionales/férulas de extensión y analgesia con Meloxicam (0.5 mg/kg)."
+                )
+                management_recommendations = "🐄 **Manejo:** Control estricto de movimiento en corrales planos sin desnivel."
+                prognosis_text = "🔮 **Pronóstico:** **Favorable a Reservado**."
         else:
             differentials = [
                 {"dx": "Acidosis Ruminal Subaguda (SARA) / Trastorno Metabólico", "prob": 88},
                 {"dx": "Complejo Infeccioso Endémico Regional (SENASICA Foco Rojo)", "prob": 76},
                 {"dx": "Proceso inflamatorio sistémico secundario", "prob": 65}
             ]
-        
+            treatment_suggestion = "Soporte metabólico y sintomático según valoración de laboratorio."
+            management_recommendations = "Ajuste de ración TMR y fibra efectiva."
+            prognosis_text = "Favorable con manejo oportuno."
+
         nutri_advice = (
             "🌾 **Sifoneo Nutricional y Preventivo Locomotor:**\n"
             f"- Proporcionar suplementación mineral alta en Selenio, Vitamina E, Calcio y Fósforo adaptada a la región `{estado_seleccionado}`.\n"
-            "- Garantizar curación umbilical inmediata al nacimiento con Solución Yodada al 7-10% y asegurar curado de colostro (mínimo 10% del peso vivo en primeras 6 horas)."
+            "- Garantizar curación umbilical inmediata al nacimiento con Solución Yodada al 7-10% y asegurar curado de colostro."
         )
-        
+
         forecast_data = engine.compute_disease_forecast(sb_system)
 
         st.session_state['diagnostic_report'] = {
@@ -575,7 +615,10 @@ with tab_diag:
             "region": f"{estado_seleccionado}, {macro_region}",
             "season": sb_season,
             "nutritional": nutri_advice,
-            "forecast": forecast_data
+            "forecast": forecast_data,
+            "treatment": treatment_suggestion,
+            "management": management_recommendations,
+            "prognosis": prognosis_text
         }
 
     st.divider()
@@ -590,13 +633,18 @@ with tab_diag:
             st.markdown(f"**{idx}. {item['dx']}** — Probabilidad Coincidencia: **{confidence}%**")
             st.progress(confidence / 100.0)
             
-        st.markdown("### 2. Pronóstico Epidemiológico Predictivo para el Hato")
+        st.markdown("### 2. Plan Terapéutico y Protocolo de Manejo Sugerido")
+        st.info(report.get('treatment', 'Sin protocolo específico.'))
+        st.success(report.get('management', 'Sin manejo específico.'))
+        st.warning(report.get('prognosis', 'Sin pronóstico registrado.'))
+            
+        st.markdown("### 3. Pronóstico Epidemiológico Predictivo para el Hato")
         fc = report['forecast']
         st.warning(f"⚠️ **Índice de Riesgo de Brote en Zona:** `{fc['score']}%` (Nivel de Alerta: **{fc['nivel']}**)")
         for alert in fc['alerts']:
             st.write(alert)
 
-        st.markdown("### 3. Sifoneo Nutricional")
+        st.markdown("### 4. Sifoneo Nutricional")
         st.info(report['nutritional'])
     else:
         st.info("💡 Ingrese los datos clínicos y presione el botón para ejecutar el diagnóstico experto adaptado a México.")
@@ -929,7 +977,7 @@ with tab_iot:
                 iot_alert_type = st.selectbox("Tipo de Alerta Temprana", ["⚠️ Alerta SARA / Baja Rumina (< 350 min/día)", "🔥 Alerta Fiebre / Temperatura Elevada", "💃 Alerta Celo Detectado (Pico Actividad)", "🔋 Batería Baja / Sin Señal"])
                 iot_status = st.selectbox("Estatus de Alerta", ["Activa / Pendiente de Revisión", "Atendida / En Tratamiento", "Descartada"])
             
-            iot_desc = st.text_area("Descripción telemétrica", value="El sensor detectó una caída sustained del tiempo de rumina durante las últimas 18 horas en el predio.")
+            iot_desc = st.text_area("Descripción telemétrica", value="El sensor detectó una caída sostenida del tiempo de rumina durante las últimas 18 horas en el predio.")
             
             submit_iot = st.form_submit_button("🛰️ Registrar Alerta IoT en Base de Datos", type="primary")
             if submit_iot:
