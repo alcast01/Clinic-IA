@@ -18,94 +18,113 @@ st.set_page_config(
 )
 
 # ==========================================
-# ESTILOS CSS VANGUARDISTAS Y REDISEÑO DE LOGO/HERO
+# ESTILOS CSS VANGUARDISTAS Y DISEÑO DE MARCA
 # ==========================================
 st.markdown("""
 <style>
-    .main { background-color: #f8fafc; }
+    .main { background-color: #f1f5f9; }
     
-    /* Branding Header & Hero Banner */
-    .brand-hero {
-        background: linear-gradient(135deg, #091e3a 0%, #224066 50%, #132e4f 100%);
-        padding: 2.5rem 2rem;
-        border-radius: 20px;
+    /* Branding Hero Section */
+    .hero-container {
+        background: linear-gradient(135deg, #0b132b 0%, #1c2541 50%, #3a506b 100%);
+        padding: 3rem 2rem;
+        border-radius: 24px;
         color: white;
-        box-shadow: 0 12px 30px -8px rgba(9, 30, 58, 0.3);
-        margin-bottom: 2rem;
+        box-shadow: 0 20px 40px -15px rgba(11, 19, 43, 0.4);
+        margin-bottom: 2.5rem;
         border: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
     }
-    .brand-logo-badge {
+    
+    .hero-logo-wrapper {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 70px;
-        height: 70px;
-        background: rgba(56, 189, 248, 0.15);
+        width: 90px;
+        height: 90px;
+        background: radial-gradient(circle, rgba(56,189,248,0.25) 0%, rgba(15,23,42,0.6) 100%);
         border: 2px solid #38bdf8;
-        border-radius: 18px;
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
-    }
-    .brand-title {
+        border-radius: 24px;
         font-size: 3rem;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
+    }
+    
+    .hero-title {
+        font-size: 3.5rem;
         font-weight: 900;
         margin: 0;
-        letter-spacing: -0.03em;
-        background: linear-gradient(90deg, #ffffff 0%, #38bdf8 100%);
+        letter-spacing: -0.04em;
+        background: linear-gradient(90deg, #ffffff 30%, #38bdf8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    .brand-slogan {
-        font-size: 1.15rem;
-        color: #e2e8f0;
-        margin-top: 0.5rem;
-        font-weight: 500;
-        font-style: italic;
-        letter-spacing: 0.01em;
+    
+    .hero-slogan {
+        font-size: 1.25rem;
+        color: #cbd5e1;
+        margin-top: 0.75rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
     }
-    .brand-author {
+    
+    .hero-author {
         font-size: 0.85rem;
         color: #38bdf8;
-        margin-top: 0.85rem;
+        margin-top: 1rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
     }
 
-    /* Tarjetas de Planes y Secciones */
-    .plan-card {
+    /* Tarjetas de Planes */
+    .plan-box {
         background: #ffffff;
         padding: 2rem 1.5rem;
-        border-radius: 16px;
+        border-radius: 20px;
         border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 12px -2px rgba(0,0,0,0.05);
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+        text-align: center;
         height: 100%;
-        transition: all 0.3s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .plan-card-featured {
+    
+    .plan-box-featured {
         background: #ffffff;
         padding: 2rem 1.5rem;
-        border-radius: 16px;
-        border: 2px solid #38bdf8;
-        box-shadow: 0 8px 25px -5px rgba(56, 189, 248, 0.2);
+        border-radius: 20px;
+        border: 2px solid #0284c7;
+        box-shadow: 0 15px 30px -5px rgba(2, 132, 199, 0.15);
+        text-align: center;
         height: 100%;
     }
+
+    .auth-card {
+        background: #ffffff;
+        padding: 2.5rem;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
+    }
+
     .card { 
         background-color: #ffffff; 
         padding: 1.5rem; 
-        border-radius: 12px; 
+        border-radius: 16px; 
         border: 1px solid #e2e8f0; 
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+        box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.03); 
         margin-bottom: 1rem; 
     }
-    .stButton button { border-radius: 10px; font-weight: 600; }
+    
+    .stButton button { border-radius: 12px; font-weight: 600; padding: 0.6rem 1.2rem; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# 0. CONTROL DE ESTADO DE SESIÓN Y AUTENTICACIÓN BIOMÉTRICA
+# 0. CONTROL DE ESTADO DE SESIÓN Y USUARIOS
 # ==========================================
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
@@ -116,7 +135,7 @@ if 'biometric_verified' not in st.session_state:
 if 'current_user' not in st.session_state:
     st.session_state['current_user'] = None
 if 'selected_plan' not in st.session_state:
-    st.session_state['selected_plan'] = None
+    st.session_state['selected_plan'] = "Pro - Médico Veterinario"
 if 'registered_users_db' not in st.session_state:
     st.session_state['registered_users_db'] = {
         "alejandro.castaneda": {
@@ -131,122 +150,43 @@ if 'registered_users_db' not in st.session_state:
     }
 
 
-def render_brand_header():
-    """Encabezado de marca con Logotipo y Eslogan"""
+def render_header_banner():
+    """Logotipo renovado y banner vanguardista"""
     st.markdown("""
-    <div class="brand-hero" style="text-align: center;">
-        <div class="brand-logo-badge">🧬🩺</div>
-        <h1 class="brand-title">Clinic-IA</h1>
-        <p class="brand-slogan">“Zootecnia de Precisión, Trazabilidad e Inteligencia Veterinaria al Servicio del Campo”</p>
-        <p class="brand-author">Desarrollada y Creada por: Dr. Alejandro Castañeda Correa</p>
+    <div class="hero-container">
+        <div class="hero-logo-wrapper">🧬🩺</div>
+        <h1 class="hero-title">Clinic-IA</h1>
+        <p class="hero-slogan">“Zootecnia de Precisión, Trazabilidad e Inteligencia Veterinaria al Servicio del Campo”</p>
+        <p class="hero-author">Desarrollada y Creada por: Dr. Alejandro Castañeda Correa</p>
     </div>
     """, unsafe_allow_html=True)
 
 
-def render_landing_and_subscription_selector():
-    """Página de inicio organizada: Branding + Selección de Plan"""
-    render_brand_header()
+def render_landing_page():
+    """Página de Inicio Organizada: Sección A (Autenticación) / Sección B (Planes de Suscripción)"""
+    render_header_banner()
     
-    st.markdown("""
-    <div style='text-align: center; margin-bottom: 2rem;'>
-        <h2>💳 Elige tu Plan de Suscripción</h2>
-        <p style='color: #64748b;'>Selecciona la modalidad adecuada para tu operación pecuaria para activar o ingresar a tu cuenta.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # SECCIÓN 1: INICIO DE SESIÓN Y REGISTRO (SEPARADO)
+    st.markdown("## 🔐 1. Acceso a la Plataforma")
+    st.caption("Ingresa con tus credenciales o registra una nueva cuenta para acceder a Clinic-IA.")
     
-    col_p1, col_p2, col_p3 = st.columns(3)
+    auth_tab1, auth_tab2 = st.tabs(["🔑 Iniciar Sesión", "📝 Registro de Nueva Cuenta Comercial"])
     
-    with col_p1:
-        st.markdown("""
-        <div class='plan-card' style='text-align: center;'>
-            <span style='font-size: 2rem;'>🌱</span>
-            <h3>Plan Productor</h3>
-            <h2 style='color: #0284c7;'>$499 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
-            <p style='color: #64748b; font-size: 0.9rem;'>Para ranchos independientes y productores individuales.</p>
-            <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1rem 0;'>
-            <div style='text-align: left; font-size: 0.95rem; color: #334155; line-height: 1.8;'>
-                ✔️ Hasta 500 aretes SINIIGA activos<br>
-                ✔️ Diagnóstico clínico asistido<br>
-                ✔️ Recetas y reportes PDF oficiales<br>
-                ✔️ Sincronización Mesh P2P básica
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        if st.button("Elegir Plan Productor", key="btn_p1", use_container_width=True):
-            st.session_state['selected_plan'] = "Productor"
-            st.rerun()
-            
-    with col_p2:
-        st.markdown("""
-        <div class='plan-card-featured' style='text-align: center;'>
-            <span style='font-size: 2rem;'>🩺</span>
-            <h3>Plan Pro Veterinario</h3>
-            <h2 style='color: #0284c7;'>$1,299 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
-            <p style='color: #64748b; font-size: 0.9rem;'>Para Médicos Zootecnistas y asesores técnicos en campo.</p>
-            <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1rem 0;'>
-            <div style='text-align: left; font-size: 0.95rem; color: #334155; line-height: 1.8;'>
-                ✔️ Hatos y aretes SINIIGA ilimitados<br>
-                ✔️ Vademecum y cálculo costo-beneficio<br>
-                ✔️ Alertas IoT y telemetría de hato<br>
-                ✔️ Fonofonía y espectrogramas (FFT)
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        if st.button("Elegir Plan Pro Vet", key="btn_p2", type="primary", use_container_width=True):
-            st.session_state['selected_plan'] = "Pro - Médico Veterinario"
-            st.rerun()
-            
-    with col_p3:
-        st.markdown("""
-        <div class='plan-card' style='text-align: center;'>
-            <span style='font-size: 2rem;'>🏢</span>
-            <h3>Plan Corporativo</h3>
-            <h2 style='color: #0284c7;'>$3,499 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
-            <p style='color: #64748b; font-size: 0.9rem;'>Para asociaciones ganaderas y agroindustrias.</p>
-            <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1rem 0;'>
-            <div style='text-align: left; font-size: 0.95rem; color: #334155; line-height: 1.8;'>
-                ✔️ Conexión y trazabilidad SENASICA<br>
-                ✔️ Red Mesh rural ilimitada para personal<br>
-                ✔️ Múltiples administradores y roles<br>
-                ✔️ Soporte técnico prioritario 24/7
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        if st.button("Elegir Plan Corporativo", key="btn_p3", use_container_width=True):
-            st.session_state['selected_plan'] = "Corporativo"
-            st.rerun()
-
-
-def render_auth_or_register_portal():
-    """Portal organizado de autenticación / registro"""
-    render_brand_header()
-    
-    st.markdown(f"""
-    <div style='text-align: center; margin-bottom: 1.5rem;'>
-        <h2>🛡️ Acceso Seguro y Registro de Cuenta</h2>
-        <p style='color: #64748b;'>Plan Seleccionado: <b style='color: #0284c7;'>{st.session_state['selected_plan']}</b> | <a href='#' target='_self' onclick='window.location.reload();'>Cambiar Plan</a></p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    auth_tab1, auth_tab2 = st.tabs(["🔑 Iniciar Sesión Segura", "📝 Registrarse Nueva Cuenta"])
-    
-    # --- PESTAÑA LOGIN CON BIOMETRÍA Y MFA ---
     with auth_tab1:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            with st.form("login_form"):
-                st.markdown("### Credenciales de Acceso")
+        col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
+        with col_l2:
+            st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
+            with st.form("login_form_standalone"):
+                st.markdown("### Credenciales de Usuario")
                 username = st.text_input("Usuario o Correo Electrónico", value="alejandro.castaneda")
                 password = st.text_input("Contraseña", type="password", value="clinic2026*")
                 
-                st.markdown("### 🔐 Doble Factor de Autenticación (MFA) & Biometría")
-                st.info("💡 Ingrese el token dinámico de 6 dígitos (SMS / WhatsApp). Simulación: `849201`")
+                st.markdown("---")
+                st.markdown("#### 🛡️ Autenticación Fuerte Anti-Fraude")
+                st.info("💡 Se enviará un token dinámico de 6 dígitos vía SMS / WhatsApp a su celular. (Simulación: `849201`)")
                 mfa_code = st.text_input("Código Token MFA", value="849201", max_chars=6)
                 
-                biometric_check = st.checkbox("👆 Validar con Huella Digital / Sensor Biométrico (Passkey FIDO2)")
+                biometric_check = st.checkbox("👆 Autenticar con Huella Digital / Sensor Biométrico (Passkey FIDO2)")
                 
                 login_btn = st.form_submit_button("🚀 Acceder a Clinic-IA", type="primary", use_container_width=True)
                 
@@ -259,41 +199,41 @@ def render_auth_or_register_portal():
                                 st.session_state['mfa_verified'] = True
                                 st.session_state['biometric_verified'] = True
                                 st.session_state['current_user'] = users_db[username]
-                                st.success("¡Autenticación biométrica y MFA exitosas! Ingresando al sistema...")
+                                st.success("¡Autenticación exitosa! Ingresando a la plataforma...")
                                 st.rerun()
                             else:
-                                st.error("❌ Se requiere la validación de la huella digital / biometría para prevenir fraudes.")
+                                st.error("❌ Se requiere la validación biométrica/huella digital para evitar robos de cuenta.")
                         else:
                             st.error("❌ Código MFA incorrecto.")
                     else:
-                        st.error("❌ Usuario o contraseña incorrectos.")
+                        st.error("❌ Credenciales incorrectas.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- PESTAÑA REGISTRO CON DATOS BANCARIOS Y CONTACTO ---
     with auth_tab2:
         col_r1, col_r2, col_r3 = st.columns([1, 2, 1])
         with col_r2:
-            with st.form("register_form"):
-                st.markdown("### 📋 Registro Comercial y Datos de Facturación")
-                
-                reg_name = st.text_input("Nombre Completo del Titular")
-                reg_email = st.text_input("Correo Electrónico Oficial")
-                reg_phone = st.text_input("Número Celular (Para Notificaciones y Tokens SMS)")
-                reg_user = st.text_input("Nombre de Usuario")
+            st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
+            with st.form("register_form_standalone"):
+                st.markdown("### Datos del Titular y Suscripción")
+                reg_name = st.text_input("Nombre Completo")
+                reg_email = st.text_input("Correo Electrónico")
+                reg_phone = st.text_input("Teléfono Celular (Para Tokens SMS / WhatsApp)")
+                reg_user = st.text_input("Nombre de Usuario deseado")
                 reg_pass = st.text_input("Contraseña Segura", type="password")
                 
-                st.markdown("#### 💳 Información Bancaria (Cobro de Suscripción)")
+                st.markdown("#### 💳 Datos Bancarios (Cobro Recurrente de Suscripción)")
                 reg_bank = st.text_input("Número de Tarjeta / CLABE Interbancaria", placeholder="**** **** **** 1234")
                 reg_expiry = st.text_input("Vencimiento (MM/AA)", placeholder="12/28")
                 reg_cvv = st.text_input("CVV / Cifra de Seguridad", type="password", max_chars=4)
                 
-                reg_biometric_consent = st.checkbox("Registrar huella digital / clave biométrica en este equipo")
+                reg_biometric_consent = st.checkbox("Registrar dispositivo para huella digital / biometría")
                 
-                register_btn = st.form_submit_button("💼 Activar Cuenta y Suscripción", type="primary", use_container_width=True)
+                register_btn = st.form_submit_button("💼 Confirmar Registro y Activar Plan", type="primary", use_container_width=True)
                 
                 if register_btn:
                     if reg_user and reg_pass and reg_email and reg_phone and reg_bank:
                         if reg_user in st.session_state['registered_users_db']:
-                            st.error("❌ El usuario ya existe. Intenta con otro.")
+                            st.error("❌ El nombre de usuario ya está registrado.")
                         else:
                             st.session_state['registered_users_db'][reg_user] = {
                                 "pass": reg_pass,
@@ -304,18 +244,86 @@ def render_auth_or_register_portal():
                                 "bank": reg_bank,
                                 "plan": st.session_state['selected_plan']
                             }
-                            st.success(f"¡Registro completado! Tokens enviados al celular `{reg_phone}`. Inicia sesión en la pestaña adyacente.")
+                            st.success(f"¡Registro exitoso! Tokens enviados a `{reg_phone}`. Procede a iniciar sesión.")
                     else:
-                        st.warning("⚠️ Por favor completa todos los campos obligatorios.")
+                        st.warning("⚠️ Completa todos los campos solicitados.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    # SECCIÓN 2: PLANES DE SUSCRIPCIÓN (SEPARADO)
+    st.markdown("## 💳 2. Oferta de Planes y Suscripciones")
+    st.caption("Selecciona el plan que se adapte a tus necesidades operativas.")
+    
+    col_p1, col_p2, col_p3 = st.columns(3)
+    
+    with col_p1:
+        st.markdown("""
+        <div class='plan-box'>
+            <span style='font-size: 2.2rem;'>🌱</span>
+            <h3>Plan Productor</h3>
+            <h2 style='color: #0284c7;'>$499 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
+            <p style='color: #64748b; font-size: 0.9rem;'>Ideal para ranchos e instalaciones individuales.</p>
+            <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1rem 0;'>
+            <div style='text-align: left; font-size: 0.95rem; color: #334155; line-height: 1.8;'>
+                ✔️ Hasta 500 aretes SINIIGA activos<br>
+                ✔️ Diagnóstico clínico asistido<br>
+                ✔️ Reportes y recetas PDF oficiales<br>
+                ✔️ Sincronización Mesh P2P básica
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
+        if st.button("Seleccionar Productor", key="p1_btn", use_container_width=True):
+            st.session_state['selected_plan'] = "Productor"
+            st.success("Has seleccionado el Plan Productor.")
+
+    with col_p2:
+        st.markdown("""
+        <div class='plan-box-featured'>
+            <span style='font-size: 2.2rem;'>🩺</span>
+            <h3>Plan Pro Veterinario</h3>
+            <h2 style='color: #0284c7;'>$1,299 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
+            <p style='color: #64748b; font-size: 0.9rem;'>Diseñado para Médicos Zootecnistas y consultores.</p>
+            <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1rem 0;'>
+            <div style='text-align: left; font-size: 0.95rem; color: #334155; line-height: 1.8;'>
+                ✔️ Hatos y aretes SINIIGA ilimitados<br>
+                ✔️ Vademecum y análisis costo-beneficio<br>
+                ✔️ Telemetría e integraciones IoT<br>
+                ✔️ Fonofonía y espectrogramas (FFT)
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
+        if st.button("Seleccionar Pro Vet", key="p2_btn", type="primary", use_container_width=True):
+            st.session_state['selected_plan'] = "Pro - Médico Veterinario"
+            st.success("Has seleccionado el Plan Pro Veterinario.")
+
+    with col_p3:
+        st.markdown("""
+        <div class='plan-box'>
+            <span style='font-size: 2.2rem;'>🏢</span>
+            <h3>Plan Corporativo</h3>
+            <h2 style='color: #0284c7;'>$3,499 <span style='font-size: 1rem; color: #64748b;'>MXN / mes</span></h2>
+            <p style='color: #64748b; font-size: 0.9rem;'>Para asociaciones ganaderas y agroindustrias.</p>
+            <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1rem 0;'>
+            <div style='text-align: left; font-size: 0.95rem; color: #334155; line-height: 1.8;'>
+                ✔️ Conexión y trazabilidad SENASICA<br>
+                ✔️ Red Mesh rural ilimitada para personal<br>
+                ✔️ Acceso multiusuario y roles<br>
+                ✔️ Soporte técnico prioritario 24/7
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
+        if st.button("Seleccionar Corporativo", key="p3_btn", use_container_width=True):
+            st.session_state['selected_plan'] = "Corporativo"
+            st.success("Has seleccionado el Plan Corporativo.")
 
 
-# Control de flujo inicial de la aplicación
-if not st.session_state['selected_plan']:
-    render_landing_and_subscription_selector()
-    st.stop()
-
+# Control de flujo para pantalla inicial
 if not st.session_state['authenticated'] or not st.session_state['mfa_verified'] or not st.session_state['biometric_verified']:
-    render_auth_or_register_portal()
+    render_landing_page()
     st.stop()
 
 
@@ -583,18 +591,17 @@ class MexicanZoningAndForecastEngine:
 
 
 # ==========================================
-# PANEL LATERAL DE CONTROL Y UBICACIÓN
+# PANEL LATERAL Y CONFIGURACIÓN REGIONAL
 # ==========================================
 st.sidebar.markdown(f"### 👤 `{st.session_state['current_user']['name']}`")
 st.sidebar.caption(f"Rol: {st.session_state['current_user']['role']}")
 st.sidebar.caption(f"Plan Activo: **{st.session_state['selected_plan']}**")
 st.sidebar.caption(f"📱 Notificaciones SMS: `{st.session_state['current_user']['phone']}`")
 
-if st.sidebar.button("🚪 Cerrar Sesión / Cambiar Plan"):
+if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state['authenticated'] = False
     st.session_state['mfa_verified'] = False
     st.session_state['biometric_verified'] = False
-    st.session_state['selected_plan'] = None
     st.rerun()
 
 st.sidebar.markdown("---")
@@ -624,7 +631,6 @@ municipio_input = st.sidebar.text_input("📍 Municipio / Localidad", value="Tla
 sb_season = st.sidebar.selectbox("🌦️ Estación Climática Actual", ["Secas / Estiaje prolongado", "Lluvias / Humedad alta / Huracanes", "Transición / Frentes fríos (Nortes)"])
 sb_species = st.sidebar.selectbox("Especie", ["Bovino", "Equino", "Porcino", "Ovino", "Caprino", "Canino", "Felino"])
 
-# --- AGRUPACIÓN DE RAZAS Y FAMILIAS ZOOTÉCNICAS ---
 if sb_species in ["Bovino"]:
     breed_family = st.sidebar.selectbox("Familia Zootécnica", [
         "🥩 Carne - Bos Taurus (Británicas / Continentales)",
@@ -670,8 +676,8 @@ Plataforma Internacional Clinic-IA
 """, unsafe_allow_html=True)
 
 
-# Banner de Encabezado Principal
-render_brand_header()
+# BANNER EN CABECERA DE LA SESIÓN AUTENTICADA
+render_header_banner()
 
 
 # ==========================================
@@ -1164,7 +1170,7 @@ with tab_iot:
                 iot_alert_type = st.selectbox("Tipo de Alerta Temprana", ["⚠️ Alerta SARA / Baja Rumina (< 350 min/día)", "🔥 Alerta Fiebre / Temperatura Elevada", "💃 Alerta Celo Detectado (Pico Actividad)", "🔋 Batería Baja / Sin Señal"])
                 iot_status = st.selectbox("Estatus de Alerta", ["Activa / Pendiente de Revisión", "Atendida / En Tratamiento", "Descartada"])
             
-            iot_desc = st.text_area("Descripción telemétrica", value="El sensor detectó una caída sustained del tiempo de rumina durante las últimas 18 horas en el predio.")
+            iot_desc = st.text_area("Descripción telemétrica", value="El sensor detectó una caída sostenida del tiempo de rumina durante las últimas 18 horas en el predio.")
             
             submit_iot = st.form_submit_button("🛰️ Registrar Alerta IoT en Base de Datos", type="primary")
             if submit_iot:
